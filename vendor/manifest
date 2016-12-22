@@ -288,12 +288,29 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/mtneug/pkg/ulid",
+			"repository": "https://github.com/mtneug/pkg",
+			"vcs": "git",
+			"revision": "358503e7219db3bd60b922bb6f70e9fe4b64df63",
+			"branch": "master",
+			"path": "/ulid",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/mtneug/pkg/version",
 			"repository": "https://github.com/mtneug/pkg",
 			"vcs": "git",
 			"revision": "358503e7219db3bd60b922bb6f70e9fe4b64df63",
 			"branch": "master",
 			"path": "/version",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/oklog/ulid",
+			"repository": "https://github.com/oklog/ulid",
+			"vcs": "git",
+			"revision": "8b9f7b2e10851b5f1737ce00fa2bedc814e83934",
+			"branch": "master",
 			"notests": true
 		},
 		{
