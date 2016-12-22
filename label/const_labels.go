@@ -12,6 +12,42 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package labels contains code for parsing hypochronos service labels and
-// constructing objects out of them.
-package labels
+package label
+
+const (
+	//
+	// Hypochronos
+	//
+
+	// Hypochronos label namespace.
+	Hypochronos = "de.mtneug.hypochronos"
+
+	//
+	// Timetable
+	//
+
+	// Timetable label namespace.
+	Timetable = Hypochronos + ".timetable"
+
+	// Type label.
+	Type = Timetable + ".type"
+
+	// TimetablePeriod label.
+	TimetablePeriod = Timetable + ".period"
+
+	// TimetableJSONUrl label.
+	TimetableJSONUrl = Timetable + ".json.url"
+
+	//
+	// Node
+	//
+
+	// Node label namespace.
+	Node = Hypochronos + ".node"
+
+	// NodePolicy label.
+	NodePolicy = Node + ".policy"
+
+	// NodeMinDuration label.
+	NodeMinDuration = Node + ".min_duration"
+)
