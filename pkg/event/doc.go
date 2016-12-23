@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package event contains code for creating event based programms.
+// Package event contains code for creating event based applications.
 // TODO: move to pkg repo
 package event
