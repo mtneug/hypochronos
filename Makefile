@@ -61,7 +61,8 @@ run: build
 	@echo "⌛ $@"
 	@bin/hypochronos \
 		--log-level debug \
-		--controller-period 1s \
+		--service-update-period 1s \
+		--node-update-period 1s \
 		--default-policy deactivated \
 		--default-timetable-update-period 1m \
 		--default-minimum-scheduling-duration 10s

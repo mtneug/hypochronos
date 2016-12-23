@@ -19,17 +19,38 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/mtneug/hypochronos/pkg/event"
+	"github.com/mtneug/hypochronos/store"
 	"github.com/mtneug/pkg/startstopper"
 )
 
 // Controller monitors Docker Swarm state.
 type Controller struct {
 	startstopper.StartStopper
+
+	nodesMap          *store.NodesMap
+	serviceHandlerMap startstopper.Map
+
+	eventManager           event.Manager
+	nodeEventsPublisher    startstopper.StartStopper
+	serviceEventsPublisher startstopper.StartStopper
 }
 
 // New creates a new controller.
-func New(p time.Duration, m startstopper.Map) *Controller {
-	ctrl := &Controller{}
+func New(nodeUpdatePeriod, serviceUpdatePeriod time.Duration, nodesMap *store.NodesMap,
+	serviceHandlerMap startstopper.Map) *Controller {
+
+	em := event.NewConcurrentManager(20)
+	np := newNodeEventsPublisher(nodeUpdatePeriod, em.Pub(), nodesMap)
+	sp := newServiceEventsPublisher(serviceUpdatePeriod, em.Pub(), serviceHandlerMap)
+
+	ctrl := &Controller{
+		nodesMap:               nodesMap,
+		serviceHandlerMap:      serviceHandlerMap,
+		eventManager:           em,
+		nodeEventsPublisher:    np,
+		serviceEventsPublisher: sp,
+	}
 	ctrl.StartStopper = startstopper.NewGo(startstopper.RunnerFunc(ctrl.run))
 	return ctrl
 }
@@ -38,7 +59,25 @@ func (c *Controller) run(ctx context.Context, stopChan <-chan struct{}) error {
 	log.Debug("Controller loop started")
 	defer log.Debug("Controller loop stopped")
 
-	<-stopChan
+	group := startstopper.NewGroup([]startstopper.StartStopper{
+		c.eventManager,
+		c.nodeEventsPublisher,
+		c.serviceEventsPublisher,
+	})
 
-	return nil
+	_ = group.Start(ctx)
+
+	select {
+	case <-stopChan:
+	case <-ctx.Done():
+	}
+
+	_ = group.Stop(ctx)
+	err := group.Err(ctx)
+
+	c.serviceHandlerMap.ForEach(func(key string, serviceHandler startstopper.StartStopper) {
+		_ = serviceHandler.Stop(ctx)
+	})
+
+	return err
 }

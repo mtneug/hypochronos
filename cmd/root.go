@@ -26,6 +26,7 @@ import (
 	"github.com/mtneug/hypochronos/api"
 	"github.com/mtneug/hypochronos/controller"
 	"github.com/mtneug/hypochronos/docker"
+	"github.com/mtneug/hypochronos/store"
 	"github.com/mtneug/hypochronos/version"
 	"github.com/mtneug/pkg/startstopper"
 	"github.com/spf13/cobra"
@@ -98,11 +99,20 @@ var rootCmd = &cobra.Command{
 			return err
 		}
 
-		ctrlPeriodStr, err := flags.GetString("controller-period")
+		nodePeriodStr, err := flags.GetString("node-update-period")
 		if err != nil {
 			return err
 		}
-		ctrlPeriod, err := time.ParseDuration(ctrlPeriodStr)
+		nodePeriod, err := time.ParseDuration(nodePeriodStr)
+		if err != nil {
+			return err
+		}
+
+		srvPeriodStr, err := flags.GetString("service-update-period")
+		if err != nil {
+			return err
+		}
+		srvPeriod, err := time.ParseDuration(srvPeriodStr)
 		if err != nil {
 			return err
 		}
@@ -116,8 +126,10 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Controller
-		store := startstopper.NewInMemoryMap()
-		ctrl := controller.New(ctrlPeriod, store)
+		nodesMap := store.NewNodesMap()
+		serviceHandlerMap := startstopper.NewInMemoryMap()
+		ctrl := controller.New(nodePeriod, srvPeriod, nodesMap, serviceHandlerMap)
+
 		if err = ctrl.Start(ctx); err != nil {
 			return err
 		}
@@ -137,10 +149,11 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.Flags().String("controller-period", "5s", "How often the controller looks for changes")
 	rootCmd.Flags().Bool("info", false, "Print hypochronos environment information and exit")
 	rootCmd.Flags().String("listen-address", ":8080", "Interface to bind to")
 	rootCmd.Flags().String("log-level", "info", "Log level ('debug', 'info', 'warn', 'error', 'fatal', 'panic')")
+	rootCmd.Flags().String("node-update-period", "30m", "How often the controller looks for node changes")
+	rootCmd.Flags().String("service-update-period", "5s", "How often the controller looks for service changes")
 	rootCmd.Flags().BoolP("version", "v", false, "Print the version and exit")
 }
 
