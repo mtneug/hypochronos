@@ -26,65 +26,75 @@ import (
 type Manager interface {
 	startstopper.StartStopper
 
-	// Register an event handler. Calling the returned function will unregister
-	// the event handler.
-	Register(Handler) (unregister func())
+	// Sub returns a read-only channel for subscribing to events. Calling the
+	// returned function will unsubscribe this channel.
+	Sub() (queue <-chan Event, unsub func())
 
-	// Publish returns a write-only channel for publishing events.
-	Publish() chan<- Event
-}
-
-// Handler for events.
-type Handler interface {
-	Handle(Event)
+	// Pub returns a write-only channel for publishing events.
+	Pub() (queue chan<- Event)
 }
 
 // ConcurrentManager manages events concurrently.
 type ConcurrentManager struct {
 	startstopper.StartStopper
 
-	mutex   sync.Mutex
-	handler map[string]Handler
-	queue   chan Event
+	mutex sync.Mutex
+	subs  map[string]chan Event
+	queue chan Event
 }
 
 // NewConcurrentManager creates a new ConcurrentManager with given queue size.
 func NewConcurrentManager(queueSize int) *ConcurrentManager {
 	em := &ConcurrentManager{
-		handler: make(map[string]Handler),
-		queue:   make(chan Event, queueSize),
+		subs:  make(map[string]chan Event),
+		queue: make(chan Event, queueSize),
 	}
 	em.StartStopper = startstopper.NewGo(startstopper.RunnerFunc(em.run))
 	return em
 }
 
-// Register an event handler.
-func (em *ConcurrentManager) Register(handler Handler) (unregister func()) {
+// Sub to the event channel.
+func (em *ConcurrentManager) Sub() (<-chan Event, func()) {
 	id := ulid.New().String()
+	sub := make(chan Event)
+	unsub := func() {
+		em.mutex.Lock()
+		defer em.mutex.Unlock()
+		close(sub)
+		delete(em.subs, id)
+	}
 
 	em.mutex.Lock()
 	defer em.mutex.Unlock()
-	em.handler[id] = handler
+	em.subs[id] = sub
 
-	return func() {
-		em.mutex.Lock()
-		defer em.mutex.Unlock()
-		delete(em.handler, id)
-	}
+	return sub, unsub
 }
 
-// Publish to the event channel
-func (em *ConcurrentManager) Publish() chan<- Event {
+// Pub to the event channel.
+func (em *ConcurrentManager) Pub() chan<- Event {
 	return em.queue
 }
 
 func (em *ConcurrentManager) run(ctx context.Context, stopChan <-chan struct{}) error {
+	defer func() {
+		em.mutex.Lock()
+		defer em.mutex.Unlock()
+		for id, sub := range em.subs {
+			delete(em.subs, id)
+			close(sub)
+		}
+	}()
+
 	for {
 		select {
 		case e := <-em.queue:
-			for _, h := range em.handler {
-				go h.Handle(e)
+			em.mutex.Lock()
+			for _, s := range em.subs {
+				sub := s
+				go func() { sub <- e }()
 			}
+			em.mutex.Unlock()
 		case <-stopChan:
 			return nil
 		case <-ctx.Done():
