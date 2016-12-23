@@ -15,6 +15,9 @@
 package servicehandler
 
 import (
+	"context"
+
+	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/mtneug/pkg/startstopper"
 )
@@ -25,4 +28,26 @@ type ServiceHandler struct {
 	startstopper.StartStopper
 
 	Service swarm.Service
+}
+
+// New creates a new ServiceHandler.
+func New(srv swarm.Service) *ServiceHandler {
+	sh := &ServiceHandler{
+		Service: srv,
+	}
+	sh.StartStopper = startstopper.NewGo(startstopper.RunnerFunc(sh.run))
+
+	return sh
+}
+
+func (sh *ServiceHandler) run(ctx context.Context, stopChan <-chan struct{}) error {
+	log.Debug("Service handler started")
+	defer log.Debug("Service handler stopped")
+
+	select {
+	case <-stopChan:
+	case <-ctx.Done():
+	}
+
+	return nil
 }

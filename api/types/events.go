@@ -35,3 +35,19 @@ const (
 	// EventTypeServiceDeleted indicates that a service was deleted.
 	EventTypeServiceDeleted event.Type = "service_deleted"
 )
+
+// TODO: maybe split type to objectType and action
+
+// IsServiceEvent checks if the event is a service event.
+func IsServiceEvent(e event.Event) bool {
+	return e.Type == EventTypeServiceCreated ||
+		e.Type == EventTypeServiceUpdated ||
+		e.Type == EventTypeServiceDeleted
+}
+
+// IsNodeEvent checks if the event is a node event.
+func IsNodeEvent(e event.Event) bool {
+	return e.Type == EventTypeNodeCreated ||
+		e.Type == EventTypeNodeUpdated ||
+		e.Type == EventTypeNodeDeleted
+}
