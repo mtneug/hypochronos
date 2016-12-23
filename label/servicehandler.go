@@ -21,7 +21,7 @@ import (
 	"github.com/mtneug/hypochronos/servicehandler"
 )
 
-const (
+var (
 	// DefaultPeriod for service handler.
 	DefaultPeriod = 30 * time.Minute
 

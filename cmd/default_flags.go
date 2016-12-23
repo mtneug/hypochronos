@@ -14,12 +14,54 @@
 
 package cmd
 
-import flag "github.com/spf13/pflag"
+import (
+	"errors"
+	"time"
+
+	"github.com/mtneug/hypochronos/api/types"
+	"github.com/mtneug/hypochronos/label"
+	flag "github.com/spf13/pflag"
+)
 
 func readAndSetDefaults(flags *flag.FlagSet) error {
-	// TODO: add default flags
+	// --default-timetable-period
+	defaultTimetablePeriodStr, err := flags.GetString("default-timetable-period")
+	if err != nil {
+		return err
+	}
+	defaultTimetablePeriod, err := time.ParseDuration(defaultTimetablePeriodStr)
+	if err != nil {
+		return err
+	}
+	label.DefaultPeriod = defaultTimetablePeriod
+
+	// --default-minimum-scheduling-duration
+	defaultMinimumSchedulingDurationStr, err := flags.GetString("default-minimum-scheduling-duration")
+	if err != nil {
+		return err
+	}
+	defaultMinimumSchedulingDuration, err := time.ParseDuration(defaultMinimumSchedulingDurationStr)
+	if err != nil {
+		return err
+	}
+	label.DefaultMinDuration = defaultMinimumSchedulingDuration
+
+	// --default-policy
+	defaultPolicyStr, err := flags.GetString("default-policy")
+	if err != nil {
+		return err
+	}
+	defaultPolicy := types.Policy(defaultPolicyStr)
+	if defaultPolicy != types.PolicyActivated && defaultPolicy != types.PolicyDeactivated {
+		return errors.New("cmd: unknown policy")
+	}
+	label.DefaultPolicy = defaultPolicy
+
 	return nil
 }
 
 func init() {
+	rootCmd.Flags().String("default-timetable-period", "1m", "Default timetable update period")
+	rootCmd.Flags().String("default-policy", "activated", "Default policy (activated or deactivated)")
+	rootCmd.Flags().String("default-minimum-scheduling-duration", "1m", "Default minimum sheduling duration")
 }
