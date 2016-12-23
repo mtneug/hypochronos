@@ -16,9 +16,25 @@ package controller
 
 import (
 	"github.com/docker/docker/api/types/swarm"
+	"github.com/mtneug/hypochronos/api/types"
+	"github.com/mtneug/hypochronos/label"
 	"github.com/mtneug/hypochronos/servicehandler"
 )
 
 func constructServiceHandler(srv swarm.Service) (*servicehandler.ServiceHandler, error) {
-	return servicehandler.New(srv), nil
+	labels := srv.Spec.Labels
+
+	tt := types.TimetableSpec{}
+	err := label.ParseTimetableSpec(&tt, labels)
+	if err != nil {
+		return nil, err
+	}
+
+	sh := servicehandler.New(srv, tt)
+	err = label.ParseServiceHandler(sh, labels)
+	if err != nil {
+		return nil, err
+	}
+
+	return sh, nil
 }

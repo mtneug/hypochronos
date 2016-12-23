@@ -22,6 +22,12 @@ const (
 	// Hypochronos label namespace.
 	Hypochronos = "de.mtneug.hypochronos"
 
+	// Period label.
+	Period = Hypochronos + ".period"
+
+	// Policy label.
+	Policy = Hypochronos + ".policy"
+
 	//
 	// Timetable
 	//
@@ -32,9 +38,6 @@ const (
 	// Type label.
 	Type = Timetable + ".type"
 
-	// TimetablePeriod label.
-	TimetablePeriod = Timetable + ".period"
-
 	// TimetableJSONUrl label.
 	TimetableJSONUrl = Timetable + ".json.url"
 
@@ -44,9 +47,6 @@ const (
 
 	// Node label namespace.
 	Node = Hypochronos + ".node"
-
-	// NodePolicy label.
-	NodePolicy = Node + ".policy"
 
 	// NodeMinDuration label.
 	NodeMinDuration = Node + ".min_duration"
