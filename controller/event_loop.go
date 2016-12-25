@@ -56,7 +56,27 @@ func (el *eventLoop) run(ctx context.Context, stopChan <-chan struct{}) error {
 	for {
 		select {
 		case e := <-eventQueue:
-			el.handleEvent(ctx, e)
+			log.Debugf("Received %s event", e.Type)
+
+			if types.IsServiceEvent(e) {
+				srv, ok := e.Object.(swarm.Service)
+				if ok {
+					el.handleServiceEvent(ctx, e, srv)
+				} else {
+					log.
+						WithError(errors.New("controller: type assertion failed")).
+						Error("Failed to get service")
+				}
+			} else if types.IsNodeEvent(e) {
+				node, ok := e.Object.(swarm.Node)
+				if ok {
+					el.handleNodeEvent(ctx, e, node)
+				} else {
+					log.
+						WithError(errors.New("controller: type assertion failed")).
+						Error("Failed to get node")
+				}
+			}
 		case <-stopChan:
 			return nil
 		case <-ctx.Done():
@@ -65,33 +85,7 @@ func (el *eventLoop) run(ctx context.Context, stopChan <-chan struct{}) error {
 	}
 }
 
-func (el *eventLoop) handleEvent(ctx context.Context, e event.Event) {
-	log.Debugf("Received %s event", e.Type)
-
-	var (
-		ok   bool
-		srv  swarm.Service
-		node swarm.Node
-	)
-
-	if types.IsServiceEvent(e) {
-		srv, ok = e.Object.(swarm.Service)
-		if !ok {
-			log.
-				WithError(errors.New("controller: type assertion failed")).
-				Error("Failed to get service")
-			return
-		}
-	} else if types.IsNodeEvent(e) {
-		node, ok = e.Object.(swarm.Node)
-		if !ok {
-			log.
-				WithError(errors.New("controller: type assertion failed")).
-				Error("Failed to get node")
-			return
-		}
-	}
-
+func (el *eventLoop) handleNodeEvent(ctx context.Context, e event.Event, node swarm.Node) {
 	switch e.Type {
 	case types.EventTypeNodeCreated:
 		el.nodesMap.Write(func(nodes map[string]swarm.Node) {
@@ -118,6 +112,11 @@ func (el *eventLoop) handleEvent(ctx context.Context, e event.Event) {
 			delete(nodes, node.ID)
 		})
 		log.Info("Node deleted")
+	}
+}
+
+func (el *eventLoop) handleServiceEvent(ctx context.Context, e event.Event, srv swarm.Service) {
+	switch e.Type {
 	case types.EventTypeServiceCreated:
 		changed, err := el.addServiceHandler(ctx, srv)
 		if err != nil {
