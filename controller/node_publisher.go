@@ -39,11 +39,11 @@ type nodeEventsPublisher struct {
 	seen map[string]bool
 }
 
-func newNodeEventsPublisher(p time.Duration, eq chan<- event.Event, m *store.NodesMap) *nodeEventsPublisher {
+func newNodeEventsPublisher(p time.Duration, eq chan<- event.Event, nm *store.NodesMap) *nodeEventsPublisher {
 	np := &nodeEventsPublisher{
 		period:     p,
 		eventQueue: eq,
-		nodesMap:   m,
+		nodesMap:   nm,
 		seen:       make(map[string]bool),
 	}
 	np.StartStopper = startstopper.NewGo(startstopper.RunnerFunc(np.run))

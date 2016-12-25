@@ -32,9 +32,9 @@ type Controller struct {
 	serviceHandlerMap startstopper.Map
 
 	eventManager           event.Manager
-	nodeEventsPublisher    startstopper.StartStopper
-	serviceEventsPublisher startstopper.StartStopper
-	eventLoop              startstopper.StartStopper
+	nodeEventsPublisher    *nodeEventsPublisher
+	serviceEventsPublisher *serviceEventsPublisher
+	eventLoop              *eventLoop
 }
 
 // New creates a new controller.
@@ -44,12 +44,10 @@ func New(nodeUpdatePeriod, serviceUpdatePeriod time.Duration, nodesMap *store.No
 	em := event.NewConcurrentManager(20)
 	np := newNodeEventsPublisher(nodeUpdatePeriod, em.Pub(), nodesMap)
 	sp := newServiceEventsPublisher(serviceUpdatePeriod, em.Pub(), serviceHandlerMap)
-	sub, _ := em.Sub()
-	el := newEventLoop(sub, nodesMap, serviceHandlerMap)
+	el := newEventLoop(em, nodesMap, serviceHandlerMap)
 
 	ctrl := &Controller{
 		nodesMap:               nodesMap,
-		serviceHandlerMap:      serviceHandlerMap,
 		eventManager:           em,
 		nodeEventsPublisher:    np,
 		serviceEventsPublisher: sp,

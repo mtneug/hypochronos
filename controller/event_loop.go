@@ -21,7 +21,9 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/mtneug/hypochronos/api/types"
+	"github.com/mtneug/hypochronos/label"
 	"github.com/mtneug/hypochronos/pkg/event"
+	"github.com/mtneug/hypochronos/servicehandler"
 	"github.com/mtneug/hypochronos/store"
 	"github.com/mtneug/pkg/startstopper"
 )
@@ -29,17 +31,16 @@ import (
 type eventLoop struct {
 	startstopper.StartStopper
 
-	eventQueue <-chan event.Event
-
+	eventManager      event.Manager
 	nodesMap          *store.NodesMap
 	serviceHandlerMap startstopper.Map
 }
 
-func newEventLoop(eq <-chan event.Event, nodesMap *store.NodesMap, serviceHandlerMap startstopper.Map) *eventLoop {
+func newEventLoop(em event.Manager, nm *store.NodesMap, shm startstopper.Map) *eventLoop {
 	el := &eventLoop{
-		eventQueue:        eq,
-		nodesMap:          nodesMap,
-		serviceHandlerMap: serviceHandlerMap,
+		eventManager:      em,
+		nodesMap:          nm,
+		serviceHandlerMap: shm,
 	}
 	el.StartStopper = startstopper.NewGo(startstopper.RunnerFunc(el.run))
 	return el
@@ -49,9 +50,12 @@ func (el *eventLoop) run(ctx context.Context, stopChan <-chan struct{}) error {
 	log.Debug("Main event loop started")
 	defer log.Debug("Main event loop stopped")
 
+	eventQueue, unsub := el.eventManager.Sub()
+	defer unsub()
+
 	for {
 		select {
-		case e := <-el.eventQueue:
+		case e := <-eventQueue:
 			el.handleEvent(ctx, e)
 		case <-stopChan:
 			return nil
@@ -139,7 +143,7 @@ func (el *eventLoop) handleEvent(ctx context.Context, e event.Event) {
 }
 
 func (el *eventLoop) addServiceHandler(ctx context.Context, srv swarm.Service) (bool, error) {
-	sh, err := constructServiceHandler(srv)
+	sh, err := el.constructServiceHandler(srv)
 	if err != nil {
 		return false, err
 	}
@@ -148,7 +152,7 @@ func (el *eventLoop) addServiceHandler(ctx context.Context, srv swarm.Service) (
 }
 
 func (el *eventLoop) updateServiceHandler(ctx context.Context, srv swarm.Service) (bool, error) {
-	sh, err := constructServiceHandler(srv)
+	sh, err := el.constructServiceHandler(srv)
 	if err != nil {
 		return false, err
 	}
@@ -158,4 +162,22 @@ func (el *eventLoop) updateServiceHandler(ctx context.Context, srv swarm.Service
 
 func (el *eventLoop) deleteServiceHandler(ctx context.Context, srv swarm.Service) (bool, error) {
 	return el.serviceHandlerMap.DeleteAndStop(ctx, srv.ID)
+}
+
+func (el *eventLoop) constructServiceHandler(srv swarm.Service) (*servicehandler.ServiceHandler, error) {
+	labels := srv.Spec.Labels
+
+	tt := types.TimetableSpec{}
+	err := label.ParseTimetableSpec(&tt, labels)
+	if err != nil {
+		return nil, err
+	}
+
+	sh := servicehandler.New(srv, tt, el.eventManager, el.nodesMap)
+	err = label.ParseServiceHandler(sh, labels)
+	if err != nil {
+		return nil, err
+	}
+
+	return sh, nil
 }

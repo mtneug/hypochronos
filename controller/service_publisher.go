@@ -49,11 +49,11 @@ type serviceEventsPublisher struct {
 	seen map[string]bool
 }
 
-func newServiceEventsPublisher(p time.Duration, eq chan<- event.Event, sh startstopper.Map) *serviceEventsPublisher {
+func newServiceEventsPublisher(p time.Duration, eq chan<- event.Event, shm startstopper.Map) *serviceEventsPublisher {
 	sp := &serviceEventsPublisher{
 		period:            p,
 		eventQueue:        eq,
-		serviceHandlerMap: sh,
+		serviceHandlerMap: shm,
 		seen:              make(map[string]bool),
 	}
 	sp.StartStopper = startstopper.NewGo(startstopper.RunnerFunc(sp.run))

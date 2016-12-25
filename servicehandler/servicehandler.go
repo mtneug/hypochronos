@@ -21,6 +21,8 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/mtneug/hypochronos/api/types"
+	"github.com/mtneug/hypochronos/pkg/event"
+	"github.com/mtneug/hypochronos/store"
 	"github.com/mtneug/pkg/startstopper"
 )
 
@@ -31,17 +33,22 @@ type ServiceHandler struct {
 
 	Service       swarm.Service
 	TimetableSpec types.TimetableSpec
+	NodesMap      *store.NodesMap
 
 	Period      time.Duration
 	Policy      types.Policy
 	MinDuration time.Duration
+
+	EventManager event.Manager
 }
 
 // New creates a new ServiceHandler.
-func New(srv swarm.Service, timetableSpec types.TimetableSpec) *ServiceHandler {
+func New(srv swarm.Service, tt types.TimetableSpec, em event.Manager, nm *store.NodesMap) *ServiceHandler {
 	sh := &ServiceHandler{
 		Service:       srv,
-		TimetableSpec: timetableSpec,
+		TimetableSpec: tt,
+		NodesMap:      nm,
+		EventManager:  em,
 	}
 	sh.StartStopper = startstopper.NewGo(startstopper.RunnerFunc(sh.run))
 
