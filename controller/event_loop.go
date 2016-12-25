@@ -17,7 +17,6 @@ package controller
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/api/types/swarm"
@@ -144,8 +143,6 @@ func (el *eventLoop) addServiceHandler(ctx context.Context, srv swarm.Service) (
 	if err != nil {
 		return false, err
 	}
-
-	fmt.Printf("%#v", sh)
 
 	return el.serviceHandlerMap.AddAndStart(ctx, srv.ID, sh)
 }
