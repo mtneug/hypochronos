@@ -33,8 +33,8 @@ import (
 type ServiceHandler struct {
 	startstopper.StartStopper
 
-	Service  swarm.Service
-	NodesMap *store.NodesMap
+	ServiceID string
+	NodesMap  *store.NodesMap
 
 	timetable      *timetable.Timetable
 	timetableMutex sync.RWMutex
@@ -49,9 +49,9 @@ type ServiceHandler struct {
 }
 
 // New creates a new ServiceHandler.
-func New(srv swarm.Service, tt types.TimetableSpec, em event.Manager, nm *store.NodesMap) *ServiceHandler {
+func New(serviceID string, tt types.TimetableSpec, em event.Manager, nm *store.NodesMap) *ServiceHandler {
 	sh := &ServiceHandler{
-		Service:       srv,
+		ServiceID:     serviceID,
 		TimetableSpec: tt,
 		NodesMap:      nm,
 		EventManager:  em,

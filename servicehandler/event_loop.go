@@ -75,6 +75,6 @@ func (sh *ServiceHandler) newDockerEvents(ctx context.Context) (<-chan events.Me
 	args := filters.NewArgs()
 	args.Add("type", "container")
 	args.Add("event", "create")
-	args.Add("label", "com.docker.swarm.service.id="+sh.Service.ID)
+	args.Add("label", "com.docker.swarm.service.id="+sh.ServiceID)
 	return docker.C.Events(ctx, dockerTypes.EventsOptions{Filters: args})
 }
