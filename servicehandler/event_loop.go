@@ -19,16 +19,25 @@ import (
 	"errors"
 
 	log "github.com/Sirupsen/logrus"
+	dockerTypes "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/events"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/mtneug/hypochronos/api/types"
+	"github.com/mtneug/hypochronos/docker"
 )
 
 func (sh *ServiceHandler) runEventLoop(ctx context.Context, stopChan <-chan struct{}) error {
 	log.Debug("Service event loop started")
 	defer log.Debug("Service event loop stopped")
 
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	eventQueue, unsub := sh.EventManager.Sub()
 	defer unsub()
+
+	dockerEvent, dockerErr := sh.newDockerEvents(ctx)
 
 	for {
 		select {
@@ -46,11 +55,26 @@ func (sh *ServiceHandler) runEventLoop(ctx context.Context, stopChan <-chan stru
 						Error("Failed to get node")
 				}
 			}
-			// TODO: add case container_create
+		case e := <-dockerEvent:
+			log.Debugf("Received %s_%s event", e.Type, e.Action)
+
+			containerID := e.Actor.ID
+			log.Debugf("Container ID: %s", containerID)
+			// TODO: implement
+		case <-dockerErr:
+			dockerEvent, dockerErr = sh.newDockerEvents(ctx)
 		case <-stopChan:
 			return nil
 		case <-ctx.Done():
 			return ctx.Err()
 		}
 	}
+}
+
+func (sh *ServiceHandler) newDockerEvents(ctx context.Context) (<-chan events.Message, <-chan error) {
+	args := filters.NewArgs()
+	args.Add("type", "container")
+	args.Add("event", "create")
+	args.Add("label", "com.docker.swarm.service.id="+sh.Service.ID)
+	return docker.C.Events(ctx, dockerTypes.EventsOptions{Filters: args})
 }
