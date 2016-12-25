@@ -46,8 +46,8 @@ func newEventLoop(eq <-chan event.Event, nodesMap *store.NodesMap, serviceHandle
 }
 
 func (el *eventLoop) run(ctx context.Context, stopChan <-chan struct{}) error {
-	log.Debug("Event loop started")
-	defer log.Debug("Event loop stopped")
+	log.Debug("Main event loop started")
+	defer log.Debug("Main event loop stopped")
 
 	for {
 		select {
