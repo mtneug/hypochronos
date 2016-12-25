@@ -28,33 +28,36 @@ import (
 type Controller struct {
 	startstopper.StartStopper
 
-	nodesMap          *store.NodesMap
-	serviceHandlerMap startstopper.Map
+	NodeUpdatePeriod    time.Duration
+	ServiceUpdatePeriod time.Duration
 
-	eventManager           event.Manager
-	nodeEventsPublisher    *nodeEventsPublisher
-	serviceEventsPublisher *serviceEventsPublisher
-	eventLoop              *eventLoop
+	NodesMap          *store.NodesMap
+	ServicesMap       *store.ServicesMap
+	ServiceHandlerMap startstopper.Map
+
+	EventManager           event.Manager
+	eventLoop              startstopper.StartStopper
+	nodeEventsPublisher    startstopper.StartStopper
+	serviceEventsPublisher startstopper.StartStopper
 }
 
 // New creates a new controller.
-func New(nodeUpdatePeriod, serviceUpdatePeriod time.Duration, nodesMap *store.NodesMap,
-	serviceHandlerMap startstopper.Map) *Controller {
-
-	em := event.NewConcurrentManager(20)
-	np := newNodeEventsPublisher(nodeUpdatePeriod, em.Pub(), nodesMap)
-	sp := newServiceEventsPublisher(serviceUpdatePeriod, em.Pub(), serviceHandlerMap)
-	el := newEventLoop(em, nodesMap, serviceHandlerMap)
+func New(nodeUpdatePeriod, serviceUpdatePeriod time.Duration) *Controller {
 
 	ctrl := &Controller{
-		nodesMap:               nodesMap,
-		serviceHandlerMap:      serviceHandlerMap,
-		eventManager:           em,
-		nodeEventsPublisher:    np,
-		serviceEventsPublisher: sp,
-		eventLoop:              el,
+		NodeUpdatePeriod:    nodeUpdatePeriod,
+		ServiceUpdatePeriod: serviceUpdatePeriod,
+		NodesMap:            store.NewNodesMap(),
+		ServicesMap:         store.NewServicesMap(),
+		ServiceHandlerMap:   startstopper.NewInMemoryMap(),
+		EventManager:        event.NewConcurrentManager(20),
 	}
+
 	ctrl.StartStopper = startstopper.NewGo(startstopper.RunnerFunc(ctrl.run))
+	ctrl.eventLoop = startstopper.NewGo(startstopper.RunnerFunc(ctrl.runEventLoop))
+	ctrl.nodeEventsPublisher = startstopper.NewGo(startstopper.RunnerFunc(ctrl.runNodeEventsPublisher))
+	ctrl.serviceEventsPublisher = startstopper.NewGo(startstopper.RunnerFunc(ctrl.runServiceEventsPublisher))
+
 	return ctrl
 }
 
@@ -63,7 +66,7 @@ func (c *Controller) run(ctx context.Context, stopChan <-chan struct{}) error {
 	defer log.Debug("Controller stopped")
 
 	group := startstopper.NewGroup([]startstopper.StartStopper{
-		c.eventManager,
+		c.EventManager,
 		c.nodeEventsPublisher,
 		c.serviceEventsPublisher,
 		c.eventLoop,
@@ -79,7 +82,7 @@ func (c *Controller) run(ctx context.Context, stopChan <-chan struct{}) error {
 	_ = group.Stop(ctx)
 	err := group.Err(ctx)
 
-	c.serviceHandlerMap.ForEach(func(key string, serviceHandler startstopper.StartStopper) {
+	c.ServiceHandlerMap.ForEach(func(key string, serviceHandler startstopper.StartStopper) {
 		_ = serviceHandler.Stop(ctx)
 	})
 

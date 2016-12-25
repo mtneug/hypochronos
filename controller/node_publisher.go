@@ -24,78 +24,57 @@ import (
 	"github.com/mtneug/hypochronos/api/types"
 	"github.com/mtneug/hypochronos/docker"
 	"github.com/mtneug/hypochronos/pkg/event"
-	"github.com/mtneug/hypochronos/store"
-	"github.com/mtneug/pkg/startstopper"
 )
 
-type nodeEventsPublisher struct {
-	startstopper.StartStopper
-
-	period     time.Duration
-	eventQueue chan<- event.Event
-	nodesMap   *store.NodesMap
-
-	// stored so that it doesn't need to be reallocated
-	seen map[string]bool
-}
-
-func newNodeEventsPublisher(p time.Duration, eq chan<- event.Event, nm *store.NodesMap) *nodeEventsPublisher {
-	np := &nodeEventsPublisher{
-		period:     p,
-		eventQueue: eq,
-		nodesMap:   nm,
-		seen:       make(map[string]bool),
-	}
-	np.StartStopper = startstopper.NewGo(startstopper.RunnerFunc(np.run))
-	return np
-}
-
-func (np *nodeEventsPublisher) run(ctx context.Context, stopChan <-chan struct{}) error {
+func (c *Controller) runNodeEventsPublisher(ctx context.Context, stopChan <-chan struct{}) error {
 	log.Debug("Node event publisher started")
 	defer log.Debug("Node event publisher stopped")
 
+	eventQueue := c.EventManager.Pub()
+	seen := make(map[string]bool)
+
+	tick := func() {
+		nodes, err := docker.C.NodeList(ctx, dockerTypes.NodeListOptions{})
+		if err != nil {
+			log.WithError(err).Error("Failed to get list of nodes")
+			return
+		}
+
+		for _, node := range nodes {
+			seen[node.ID] = true
+			c.NodesMap.Read(func(nodes map[string]swarm.Node) {
+				n, ok := nodes[node.ID]
+				if !ok {
+					// Add
+					eventQueue <- event.New(types.EventTypeNodeCreated, node)
+				} else if n.Version.Index < node.Version.Index {
+					// Update
+					eventQueue <- event.New(types.EventTypeNodeUpdated, node)
+				}
+			})
+		}
+
+		c.NodesMap.Read(func(nodes map[string]swarm.Node) {
+			for id, node := range nodes {
+				if !seen[id] {
+					// Delete
+					eventQueue <- event.New(types.EventTypeNodeDeleted, node)
+				}
+				delete(seen, id)
+			}
+		})
+	}
+
 	for {
-		np.tick(ctx)
+		tick()
 
 		select {
-		case <-time.After(np.period):
-			np.tick(ctx)
+		case <-time.After(c.NodeUpdatePeriod):
+			tick()
 		case <-stopChan:
 			return nil
 		case <-ctx.Done():
 			return ctx.Err()
 		}
 	}
-}
-
-func (np *nodeEventsPublisher) tick(ctx context.Context) {
-	nodes, err := docker.C.NodeList(ctx, dockerTypes.NodeListOptions{})
-	if err != nil {
-		log.WithError(err).Error("Failed to get list of nodes")
-		return
-	}
-
-	for _, node := range nodes {
-		np.seen[node.ID] = true
-		np.nodesMap.Read(func(nodes map[string]swarm.Node) {
-			n, ok := nodes[node.ID]
-			if !ok {
-				// Add
-				np.eventQueue <- event.New(types.EventTypeNodeCreated, node)
-			} else if n.Version.Index < node.Version.Index {
-				// Update
-				np.eventQueue <- event.New(types.EventTypeNodeUpdated, node)
-			}
-		})
-	}
-
-	np.nodesMap.Read(func(nodes map[string]swarm.Node) {
-		for id, node := range nodes {
-			if !np.seen[id] {
-				// Delete
-				np.eventQueue <- event.New(types.EventTypeNodeDeleted, node)
-			}
-			delete(np.seen, id)
-		}
-	})
 }

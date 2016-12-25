@@ -26,9 +26,7 @@ import (
 	"github.com/mtneug/hypochronos/api"
 	"github.com/mtneug/hypochronos/controller"
 	"github.com/mtneug/hypochronos/docker"
-	"github.com/mtneug/hypochronos/store"
 	"github.com/mtneug/hypochronos/version"
-	"github.com/mtneug/pkg/startstopper"
 	"github.com/spf13/cobra"
 )
 
@@ -126,9 +124,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Controller
-		nodesMap := store.NewNodesMap()
-		serviceHandlerMap := startstopper.NewInMemoryMap()
-		ctrl := controller.New(nodePeriod, srvPeriod, nodesMap, serviceHandlerMap)
+		ctrl := controller.New(nodePeriod, srvPeriod)
 
 		if err = ctrl.Start(ctx); err != nil {
 			return err
