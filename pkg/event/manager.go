@@ -60,8 +60,8 @@ func (em *ConcurrentManager) Sub() (<-chan Event, func()) {
 	unsub := func() {
 		em.mutex.Lock()
 		defer em.mutex.Unlock()
-		close(sub)
 		delete(em.subs, id)
+		close(sub)
 	}
 
 	em.mutex.Lock()
@@ -77,15 +77,6 @@ func (em *ConcurrentManager) Pub() chan<- Event {
 }
 
 func (em *ConcurrentManager) run(ctx context.Context, stopChan <-chan struct{}) error {
-	defer func() {
-		em.mutex.Lock()
-		defer em.mutex.Unlock()
-		for id, sub := range em.subs {
-			delete(em.subs, id)
-			close(sub)
-		}
-	}()
-
 	for {
 		select {
 		case e := <-em.queue:
