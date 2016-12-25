@@ -48,6 +48,7 @@ func New(nodeUpdatePeriod, serviceUpdatePeriod time.Duration, nodesMap *store.No
 
 	ctrl := &Controller{
 		nodesMap:               nodesMap,
+		serviceHandlerMap:      serviceHandlerMap,
 		eventManager:           em,
 		nodeEventsPublisher:    np,
 		serviceEventsPublisher: sp,
