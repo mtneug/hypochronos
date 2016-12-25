@@ -59,8 +59,8 @@ func New(nodeUpdatePeriod, serviceUpdatePeriod time.Duration, nodesMap *store.No
 }
 
 func (c *Controller) run(ctx context.Context, stopChan <-chan struct{}) error {
-	log.Debug("Controller loop started")
-	defer log.Debug("Controller loop stopped")
+	log.Debug("Controller started")
+	defer log.Debug("Controller stopped")
 
 	group := startstopper.NewGroup([]startstopper.StartStopper{
 		c.eventManager,
