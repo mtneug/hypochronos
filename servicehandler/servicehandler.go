@@ -16,6 +16,7 @@ package servicehandler
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -23,6 +24,7 @@ import (
 	"github.com/mtneug/hypochronos/api/types"
 	"github.com/mtneug/hypochronos/pkg/event"
 	"github.com/mtneug/hypochronos/store"
+	"github.com/mtneug/hypochronos/timetable"
 	"github.com/mtneug/pkg/startstopper"
 )
 
@@ -31,15 +33,19 @@ import (
 type ServiceHandler struct {
 	startstopper.StartStopper
 
-	Service       swarm.Service
-	TimetableSpec types.TimetableSpec
-	NodesMap      *store.NodesMap
+	Service  swarm.Service
+	NodesMap *store.NodesMap
+
+	timetable      *timetable.Timetable
+	timetableMutex sync.RWMutex
+	TimetableSpec  types.TimetableSpec
 
 	Period      time.Duration
 	Policy      types.Policy
 	MinDuration time.Duration
 
 	EventManager event.Manager
+	eventLoop    startstopper.StartStopper
 }
 
 // New creates a new ServiceHandler.
@@ -51,6 +57,7 @@ func New(srv swarm.Service, tt types.TimetableSpec, em event.Manager, nm *store.
 		EventManager:  em,
 	}
 	sh.StartStopper = startstopper.NewGo(startstopper.RunnerFunc(sh.run))
+	sh.eventLoop = startstopper.NewGo(startstopper.RunnerFunc(sh.runEventLoop))
 
 	return sh
 }
@@ -59,10 +66,35 @@ func (sh *ServiceHandler) run(ctx context.Context, stopChan <-chan struct{}) err
 	log.Debug("Service handler started")
 	defer log.Debug("Service handler stopped")
 
+	group := startstopper.NewGroup([]startstopper.StartStopper{
+		sh.eventLoop,
+	})
+
+	_ = group.Start(ctx)
+
 	select {
 	case <-stopChan:
 	case <-ctx.Done():
 	}
 
-	return nil
+	_ = group.Stop(ctx)
+	err := group.Err(ctx)
+
+	return err
+}
+
+func (sh *ServiceHandler) applyTimetable(ctx context.Context, nodeID string) {
+	sh.NodesMap.Write(func(nodes map[string]swarm.Node) {
+		sh.timetableMutex.RLock()
+		defer sh.timetableMutex.RUnlock()
+
+		node, present := nodes[nodeID]
+		if present {
+			newNode, err := timetable.Apply(ctx, sh.timetable, &node)
+			if err != nil {
+				log.WithError(err).Error("Failed to apply timetable")
+			}
+			nodes[nodeID] = *newNode
+		}
+	})
 }
