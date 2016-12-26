@@ -16,27 +16,21 @@ package timetable
 
 import "time"
 
-// State of a resource
+// State of a resource.
 type State string
 
-const (
-	// StateActivated indicates that the resource is activated.
-	StateActivated State = "activated"
-
-	// StateDeactivated indicates that the resource is deactivated.
-	StateDeactivated State = "deactivated"
-
-	// StateUndefined indicates that the state of the resource is undefined.
-	StateUndefined State = "undefined"
-)
+// StateUndefined indicates that the state of the resource is undefined.
+const StateUndefined State = "undefined"
 
 // Timetable for resources.
 type Timetable struct {
+	DefaultState State
+
 	// TODO: implement
 }
 
-// Apply the timetable rules to given resource.
-func Apply(tt *Timetable, t time.Time, id string) State {
+// State of the resource at given time.
+func (tt *Timetable) State(id string, t time.Time) State {
 	// TODO: implement
-	return StateActivated
+	return tt.DefaultState
 }

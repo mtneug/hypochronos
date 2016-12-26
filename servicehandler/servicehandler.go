@@ -55,6 +55,11 @@ func New(serviceID string, tt types.TimetableSpec, em event.Manager, nm *store.N
 		TimetableSpec: tt,
 		NodesMap:      nm,
 		EventManager:  em,
+
+		// TODO: implement
+		timetable: &timetable.Timetable{
+			DefaultState: timetable.StateUndefined,
+		},
 	}
 	sh.StartStopper = startstopper.NewGo(startstopper.RunnerFunc(sh.run))
 	sh.eventLoop = startstopper.NewGo(startstopper.RunnerFunc(sh.runEventLoop))
@@ -80,21 +85,15 @@ func (sh *ServiceHandler) run(ctx context.Context, stopChan <-chan struct{}) err
 	_ = group.Stop(ctx)
 	err := group.Err(ctx)
 
-	return err
-}
-
-func (sh *ServiceHandler) applyTimetable(ctx context.Context, nodeID string) {
+	log.Debug("Delete node state labels")
 	sh.NodesMap.Write(func(nodes map[string]swarm.Node) {
-		sh.timetableMutex.RLock()
-		defer sh.timetableMutex.RUnlock()
-
-		node, present := nodes[nodeID]
-		if present {
-			newNode, err := timetable.Apply(ctx, sh.timetable, &node)
+		for _, node := range nodes {
+			err = deleteStateLabel(ctx, sh.ServiceID, &node)
 			if err != nil {
-				log.WithError(err).Error("Failed to apply timetable")
+				log.WithError(err).Warn("Deletion of node state label failed")
 			}
-			nodes[nodeID] = *newNode
 		}
 	})
+
+	return err
 }

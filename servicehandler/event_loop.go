@@ -22,7 +22,6 @@ import (
 	dockerTypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/events"
 	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/api/types/swarm"
 	"github.com/mtneug/hypochronos/api/types"
 	"github.com/mtneug/hypochronos/docker"
 )
@@ -46,13 +45,13 @@ func (sh *ServiceHandler) runEventLoop(ctx context.Context, stopChan <-chan stru
 				e.Type == types.EventTypeNodeUpdated {
 				log.Debugf("Received %s event", e.Type)
 
-				n, ok := e.Object.(swarm.Node)
+				nodeID, ok := e.Object.(string)
 				if ok {
-					sh.applyTimetable(ctx, n.ID)
+					sh.applyTimetable(ctx, nodeID)
 				} else {
 					log.
 						WithError(errors.New("servicehandler: type assertion failed")).
-						Error("Failed to get node")
+						Error("Failed to get node ID")
 				}
 			}
 		case e := <-dockerEvent:
