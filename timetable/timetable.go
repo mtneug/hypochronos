@@ -14,19 +14,29 @@
 
 package timetable
 
-import (
-	"context"
+import "time"
 
-	"github.com/docker/docker/api/types/swarm"
+// State of a resource
+type State string
+
+const (
+	// StateActivated indicates that the resource is activated.
+	StateActivated State = "activated"
+
+	// StateDeactivated indicates that the resource is deactivated.
+	StateDeactivated State = "deactivated"
+
+	// StateUndefined indicates that the state of the resource is undefined.
+	StateUndefined State = "undefined"
 )
 
-// Timetable for swarm node schedulability.
+// Timetable for resources.
 type Timetable struct {
 	// TODO: implement
 }
 
-// Apply the timetable rules to given node.
-func Apply(ctx context.Context, tt *Timetable, node *swarm.Node) (*swarm.Node, error) {
+// Apply the timetable rules to given resource.
+func Apply(tt *Timetable, t time.Time, id string) State {
 	// TODO: implement
-	return node, nil
+	return StateActivated
 }
