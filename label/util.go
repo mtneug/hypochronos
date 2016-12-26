@@ -20,5 +20,5 @@ func Equal(labels1, labels2 map[string]string) bool {
 		labels1[Policy] == labels2[Policy] &&
 		labels1[Type] == labels2[Type] &&
 		labels1[TimetableJSONUrl] == labels2[TimetableJSONUrl] &&
-		labels1[NodeMinDuration] == labels2[NodeMinDuration]
+		labels1[MinDuration] == labels2[MinDuration]
 }

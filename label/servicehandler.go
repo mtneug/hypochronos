@@ -48,7 +48,7 @@ func ParseServiceHandler(sh *servicehandler.ServiceHandler, labels map[string]st
 	}
 
 	// min duration
-	minDurationStr, ok := labels[NodeMinDuration]
+	minDurationStr, ok := labels[MinDuration]
 	if !ok {
 		sh.MinDuration = DefaultMinDuration
 	} else {

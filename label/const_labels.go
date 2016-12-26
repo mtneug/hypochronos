@@ -28,6 +28,9 @@ const (
 	// Policy label.
 	Policy = Hypochronos + ".policy"
 
+	// MinDuration label.
+	MinDuration = Hypochronos + ".min_duration"
+
 	//
 	// Timetable
 	//
@@ -40,14 +43,4 @@ const (
 
 	// TimetableJSONUrl label.
 	TimetableJSONUrl = Timetable + ".json.url"
-
-	//
-	// Node
-	//
-
-	// Node label namespace.
-	Node = Hypochronos + ".node"
-
-	// NodeMinDuration label.
-	NodeMinDuration = Node + ".min_duration"
 )
