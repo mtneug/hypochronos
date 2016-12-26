@@ -40,25 +40,31 @@ func (c *Controller) runServiceEventsPublisher(ctx context.Context, stopChan <-c
 			return
 		}
 
-		for _, service := range services {
-			seen[service.ID] = true
-			c.ServicesMap.Read(func(services map[string]swarm.Service) {
-				n, ok := services[service.ID]
+		for _, srv := range services {
+			seen[srv.ID] = true
+			c.ServicesMap.Write(func(services map[string]swarm.Service) {
+				n, ok := services[srv.ID]
 				if !ok {
 					// Add
-					eventQueue <- event.New(types.EventTypeServiceCreated, service)
-				} else if n.Version.Index < service.Version.Index {
+					services[srv.ID] = srv
+					log.Info("Service added")
+					eventQueue <- event.New(types.EventTypeServiceCreated, srv.ID)
+				} else if n.Version.Index < srv.Version.Index {
 					// Update
-					eventQueue <- event.New(types.EventTypeServiceUpdated, service)
+					services[srv.ID] = srv
+					log.Info("Service updated")
+					eventQueue <- event.New(types.EventTypeServiceUpdated, srv.ID)
 				}
 			})
 		}
 
-		c.ServicesMap.Read(func(services map[string]swarm.Service) {
-			for id, service := range services {
+		c.ServicesMap.Write(func(services map[string]swarm.Service) {
+			for id, srv := range services {
 				if !seen[id] {
 					// Delete
-					eventQueue <- event.New(types.EventTypeServiceDeleted, service)
+					delete(services, srv.ID)
+					log.Info("Service updated")
+					eventQueue <- event.New(types.EventTypeServiceDeleted, srv.ID)
 				}
 				delete(seen, id)
 			}

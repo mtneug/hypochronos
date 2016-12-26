@@ -42,23 +42,28 @@ func (c *Controller) runNodeEventsPublisher(ctx context.Context, stopChan <-chan
 
 		for _, node := range nodes {
 			seen[node.ID] = true
-			c.NodesMap.Read(func(nodes map[string]swarm.Node) {
+			c.NodesMap.Write(func(nodes map[string]swarm.Node) {
 				n, ok := nodes[node.ID]
 				if !ok {
 					// Add
-					eventQueue <- event.New(types.EventTypeNodeCreated, node)
+					nodes[node.ID] = node
+					log.Info("Node added")
+					eventQueue <- event.New(types.EventTypeNodeCreated, node.ID)
 				} else if n.Version.Index < node.Version.Index {
 					// Update
-					eventQueue <- event.New(types.EventTypeNodeUpdated, node)
+					nodes[node.ID] = node
+					log.Info("Node updated")
+					eventQueue <- event.New(types.EventTypeNodeUpdated, node.ID)
 				}
 			})
 		}
 
-		c.NodesMap.Read(func(nodes map[string]swarm.Node) {
+		c.NodesMap.Write(func(nodes map[string]swarm.Node) {
 			for id, node := range nodes {
 				if !seen[id] {
-					// Delete
-					eventQueue <- event.New(types.EventTypeNodeDeleted, node)
+					delete(nodes, node.ID)
+					log.Info("Node deleted")
+					eventQueue <- event.New(types.EventTypeNodeDeleted, node.ID)
 				}
 				delete(seen, id)
 			}

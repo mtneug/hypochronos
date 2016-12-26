@@ -36,25 +36,16 @@ func (c *Controller) runEventLoop(ctx context.Context, stopChan <-chan struct{})
 	for {
 		select {
 		case e := <-eventQueue:
-			log.Debugf("Received %s event", e.Type)
-
 			if types.IsServiceEvent(e) {
-				srv, ok := e.Object.(swarm.Service)
+				log.Debugf("Received %s event", e.Type)
+
+				serviceID, ok := e.Object.(string)
 				if ok {
-					c.handleServiceEvent(ctx, e, srv)
+					c.handleServiceEvent(ctx, e, serviceID)
 				} else {
 					log.
 						WithError(errors.New("controller: type assertion failed")).
-						Error("Failed to get service")
-				}
-			} else if types.IsNodeEvent(e) {
-				node, ok := e.Object.(swarm.Node)
-				if ok {
-					c.handleNodeEvent(ctx, e, node)
-				} else {
-					log.
-						WithError(errors.New("controller: type assertion failed")).
-						Error("Failed to get node")
+						Error("Failed to get service ID")
 				}
 			}
 		case <-stopChan:
@@ -65,77 +56,33 @@ func (c *Controller) runEventLoop(ctx context.Context, stopChan <-chan struct{})
 	}
 }
 
-func (c *Controller) handleNodeEvent(ctx context.Context, e event.Event, node swarm.Node) {
-	switch e.Type {
-	case types.EventTypeNodeCreated:
-		c.NodesMap.Write(func(nodes map[string]swarm.Node) {
-			// another Goroutine might have already added the node
-			n, present := nodes[node.ID]
-			if present && node.Version.Index < n.Version.Index {
-				return
-			}
-			nodes[node.ID] = node
-		})
-		log.Info("Node added")
-
-	case types.EventTypeNodeUpdated:
-		c.NodesMap.Write(func(nodes map[string]swarm.Node) {
-			// another Goroutine might have already updated the node
-			n, present := nodes[node.ID]
-			if present && node.Version.Index < n.Version.Index {
-				return
-			}
-			nodes[node.ID] = node
-		})
-		log.Info("Node updated")
-
-	case types.EventTypeNodeDeleted:
-		c.NodesMap.Write(func(nodes map[string]swarm.Node) {
-			delete(nodes, node.ID)
-		})
-		log.Info("Node deleted")
-	}
-}
-
-func (c *Controller) handleServiceEvent(ctx context.Context, e event.Event, srv swarm.Service) {
+func (c *Controller) handleServiceEvent(ctx context.Context, e event.Event, serviceID string) {
 	switch e.Type {
 	case types.EventTypeServiceCreated:
 		c.ServicesMap.Write(func(services map[string]swarm.Service) {
-			changed, err := c.addServiceHandler(ctx, srv)
+			changed, err := c.addServiceHandler(ctx, services[serviceID])
 			if err != nil {
 				log.WithError(err).Error("Could not add service handler")
 				return
 			} else if changed {
 				log.Info("Service handler added")
 			}
-
-			services[srv.ID] = srv
 		})
 
 	case types.EventTypeServiceUpdated:
 		c.ServicesMap.Write(func(services map[string]swarm.Service) {
-			oldSrv, ok := services[srv.ID]
-			if !ok {
-				log.
-					WithError(errors.New("controller: could not find old service")).
-					Error("Could not update service handler")
-				return
-			}
-
-			changed, err := c.updateServiceHandler(ctx, oldSrv, srv)
+			changed, err := c.updateServiceHandler(ctx, services[serviceID])
 			if err != nil {
 				log.WithError(err).Error("Could not update service handler")
 				return
 			} else if changed {
 				log.Info("Service handler updated")
 			}
-
-			services[srv.ID] = srv
 		})
 
 	case types.EventTypeServiceDeleted:
 		c.ServicesMap.Write(func(services map[string]swarm.Service) {
-			changed, err := c.deleteServiceHandler(ctx, srv.ID)
+			changed, err := c.deleteServiceHandler(ctx, serviceID)
 			if err != nil {
 				log.WithError(err).Error("Could not delete service handler")
 				return
@@ -143,7 +90,7 @@ func (c *Controller) handleServiceEvent(ctx context.Context, e event.Event, srv 
 				log.Info("Service handler deleted")
 			}
 
-			delete(services, srv.ID)
+			delete(services, serviceID)
 		})
 	}
 }
@@ -157,19 +104,19 @@ func (c *Controller) addServiceHandler(ctx context.Context, srv swarm.Service) (
 	return c.ServiceHandlerMap.AddAndStart(ctx, srv.ID, sh)
 }
 
-func (c *Controller) updateServiceHandler(ctx context.Context, srvOld, srvNew swarm.Service) (bool, error) {
+func (c *Controller) updateServiceHandler(ctx context.Context, srv swarm.Service) (bool, error) {
 	// We want to skip updates if non of the hypochronos labels have changed (for
 	// instance if the service scale is changed).
-	if label.Equal(srvOld.Spec.Labels, srvNew.Spec.Labels) {
+	if label.Equal(srv.Spec.Labels, srv.PreviousSpec.Labels) {
 		return false, nil
 	}
 
-	sh, err := c.constructServiceHandler(srvNew)
+	sh, err := c.constructServiceHandler(srv)
 	if err != nil {
 		return false, err
 	}
 
-	return c.ServiceHandlerMap.UpdateAndRestart(ctx, srvNew.ID, sh)
+	return c.ServiceHandlerMap.UpdateAndRestart(ctx, srv.ID, sh)
 }
 
 func (c *Controller) deleteServiceHandler(ctx context.Context, serviceID string) (bool, error) {
