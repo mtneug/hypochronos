@@ -12,26 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package types
+package model
 
-// TimetableType represents some category of timetables.
-type TimetableType string
+import "github.com/mtneug/hypochronos/timetable"
 
 const (
-	// TimetableTypeJSON is a hypochronos JSON timetable.
-	TimetableTypeJSON TimetableType = "json"
+	// StateActivated indicates that the resource is activated.
+	StateActivated timetable.State = "activated"
+
+	// StateDeactivated indicates that the resource is deactivated.
+	StateDeactivated timetable.State = "deactivated"
 )
-
-// TimetableSpec specifies a timetable.
-type TimetableSpec struct {
-	// Type of the timetable.
-	Type TimetableType
-	// JSONSpec for a hypochronos JSON timetable.
-	JSONSpec TimetableJSONSpec
-}
-
-// TimetableJSONSpec specifies a hypochronos JSON timetable.
-type TimetableJSONSpec struct {
-	// URL of the hypochronos JSON timetable.
-	URL string
-}

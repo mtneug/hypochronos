@@ -12,15 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package types
-
-// Policy for nodes that have no timetable entry.
-type Policy string
-
-const (
-	// PolicyActivated activates nodes by default.
-	PolicyActivated Policy = "activated"
-
-	// PolicyDeactivated deactivates nodes by default.
-	PolicyDeactivated Policy = "deactivated"
-)
+// Package model contains the hypochronos model objects.
+package model
