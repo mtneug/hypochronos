@@ -34,7 +34,10 @@ func ParseTimetableSpec(tts *timetable.Spec, labels map[string]string) error {
 		return ErrNoType
 	}
 
-	parseTimetableSpecCommon(tts, labels)
+	err := parseTimetableSpecCommon(tts, labels)
+	if err != nil {
+		return err
+	}
 
 	switch timetable.Type(typeStr) {
 	case timetable.TypeJSON:
