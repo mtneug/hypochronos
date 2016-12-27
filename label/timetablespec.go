@@ -17,27 +17,51 @@ package label
 import (
 	"net/url"
 
-	"github.com/mtneug/hypochronos/api/types"
+	"github.com/mtneug/hypochronos/model"
+	"github.com/mtneug/hypochronos/timetable"
+)
+
+var (
+	// DefaultState for timetable spec.
+	DefaultState = model.StateActivated
 )
 
 // ParseTimetableSpec parses the labels and sets the corresponding values for
 // given timetable specification.
-func ParseTimetableSpec(tt *types.TimetableSpec, labels map[string]string) error {
-	typeStr, ok := labels[Type]
+func ParseTimetableSpec(tts *timetable.Spec, labels map[string]string) error {
+	typeStr, ok := labels[TimetableType]
 	if !ok {
 		return ErrNoType
 	}
 
-	switch types.TimetableType(typeStr) {
-	case types.TimetableTypeJSON:
-		return parseJSONTimetableSpec(tt, labels)
+	parseTimetableSpecCommon(tts, labels)
+
+	switch timetable.Type(typeStr) {
+	case timetable.TypeJSON:
+		return parseTimetableSpecJSON(tts, labels)
 	}
 
 	return ErrUnknownType
 }
 
-func parseJSONTimetableSpec(tt *types.TimetableSpec, labels map[string]string) error {
-	tt.Type = types.TimetableTypeJSON
+func parseTimetableSpecCommon(tts *timetable.Spec, labels map[string]string) error {
+	// default state
+	defaultStateStr, ok := labels[TimetableDefaultState]
+	if !ok {
+		tts.DefaultState = DefaultState
+	} else {
+		defaultState := timetable.State(defaultStateStr)
+		if defaultState != model.StateActivated && defaultState != model.StateDeactivated {
+			return ErrUnknownState
+		}
+		tts.DefaultState = defaultState
+	}
+
+	return nil
+}
+
+func parseTimetableSpecJSON(tts *timetable.Spec, labels map[string]string) error {
+	tts.Type = timetable.TypeJSON
 
 	// URL
 	urlStr, ok := labels[TimetableJSONUrl]
@@ -48,7 +72,7 @@ func parseJSONTimetableSpec(tt *types.TimetableSpec, labels map[string]string) e
 	if err != nil || url.Scheme != "http" {
 		return ErrInvalidHTTPUrl
 	}
-	tt.JSONSpec.URL = url.String()
+	tts.JSONSpec.URL = url.String()
 
 	return nil
 }

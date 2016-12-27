@@ -36,7 +36,7 @@ var (
 	// is invalid.
 	ErrInvalidDuration = errors.New("label: invalid duration")
 
-	// ErrUnknownPolicy indicates that the parsing failed because the policy is
+	// ErrUnknownState indicates that the parsing failed because the state is
 	// unknown.
-	ErrUnknownPolicy = errors.New("label: unknown policy")
+	ErrUnknownState = errors.New("label: unknown state")
 )

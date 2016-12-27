@@ -17,8 +17,8 @@ package label
 // Equal returns true if the same values for the hypochronos labels are used.
 func Equal(labels1, labels2 map[string]string) bool {
 	return labels1[Period] == labels2[Period] &&
-		labels1[Policy] == labels2[Policy] &&
-		labels1[Type] == labels2[Type] &&
-		labels1[TimetableJSONUrl] == labels2[TimetableJSONUrl] &&
-		labels1[MinDuration] == labels2[MinDuration]
+		labels1[MinDuration] == labels2[MinDuration] &&
+		labels1[TimetableType] == labels2[TimetableType] &&
+		labels1[TimetableDefaultState] == labels2[TimetableDefaultState] &&
+		labels1[TimetableJSONUrl] == labels2[TimetableJSONUrl]
 }

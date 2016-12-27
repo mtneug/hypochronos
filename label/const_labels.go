@@ -25,9 +25,6 @@ const (
 	// Period label.
 	Period = Hypochronos + ".period"
 
-	// Policy label.
-	Policy = Hypochronos + ".policy"
-
 	// MinDuration label.
 	MinDuration = Hypochronos + ".min_duration"
 
@@ -38,8 +35,11 @@ const (
 	// Timetable label namespace.
 	Timetable = Hypochronos + ".timetable"
 
-	// Type label.
-	Type = Timetable + ".type"
+	// TimetableType label.
+	TimetableType = Timetable + ".type"
+
+	// TimetableDefaultState label.
+	TimetableDefaultState = Timetable + ".default_state"
 
 	// TimetableJSONUrl label.
 	TimetableJSONUrl = Timetable + ".json.url"

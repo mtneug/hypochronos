@@ -17,7 +17,6 @@ package label
 import (
 	"time"
 
-	"github.com/mtneug/hypochronos/api/types"
 	"github.com/mtneug/hypochronos/servicehandler"
 )
 
@@ -27,9 +26,6 @@ var (
 
 	// DefaultMinDuration for service handler.
 	DefaultMinDuration = 1 * time.Minute
-
-	// DefaultPolicy for service handler.
-	DefaultPolicy = types.PolicyActivated
 )
 
 // ParseServiceHandler parses the labels and sets the corresponding values for
@@ -57,18 +53,6 @@ func ParseServiceHandler(sh *servicehandler.ServiceHandler, labels map[string]st
 			return ErrInvalidDuration
 		}
 		sh.MinDuration = minDuration
-	}
-
-	// policy
-	policyStr, ok := labels[Policy]
-	if !ok {
-		sh.Policy = DefaultPolicy
-	} else {
-		policy := types.Policy(policyStr)
-		if policy != types.PolicyActivated && policy != types.PolicyDeactivated {
-			return ErrUnknownPolicy
-		}
-		sh.Policy = policy
 	}
 
 	return nil
