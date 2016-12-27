@@ -133,7 +133,7 @@ func (c *Controller) constructServiceHandler(srv swarm.Service) (*servicehandler
 		return nil, err
 	}
 
-	sh := servicehandler.New(srv.ID, tts, c.EventManager, c.NodesMap)
+	sh := servicehandler.New(srv.Spec.Name, tts, c.EventManager, c.NodesMap)
 	err = label.ParseServiceHandler(sh, labels)
 	if err != nil {
 		return nil, err
