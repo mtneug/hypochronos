@@ -19,18 +19,44 @@ import "time"
 // State of a resource.
 type State string
 
-// StateUndefined indicates that the state of the resource is undefined.
-const StateUndefined State = "undefined"
+const (
+	// StateUndefined indicates that the state of the resource is undefined.
+	StateUndefined State = "undefined"
+)
+
+// Type represents some category of timetables.
+type Type string
+
+const (
+	// TypeJSON is a hypochronos JSON timetable.
+	TypeJSON Type = "json"
+)
+
+// Spec specifies a timetable.
+type Spec struct {
+	// Type of the timetable.
+	Type Type
+	// JSONSpec for a hypochronos JSON timetable.
+	JSONSpec JSONSpec
+	// DefaultState if non is given.
+	DefaultState State
+}
+
+// JSONSpec specifies a hypochronos JSON timetable.
+type JSONSpec struct {
+	// URL of the hypochronos JSON timetable.
+	URL string
+}
 
 // Timetable for resources.
 type Timetable struct {
-	DefaultState State
-
-	// TODO: implement
+	ID       string
+	Spec     Spec
+	FilledAt time.Time
 }
 
 // State of the resource at given time.
-func (tt *Timetable) State(id string, t time.Time) State {
+func (tt *Timetable) State(id string, t time.Time) (state State, until time.Time) {
 	// TODO: implement
-	return tt.DefaultState
+	return tt.Spec.DefaultState, t.Add(24 * time.Hour)
 }
