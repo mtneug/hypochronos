@@ -18,8 +18,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/mtneug/hypochronos/api/types"
 	"github.com/mtneug/hypochronos/label"
+	"github.com/mtneug/hypochronos/model"
+	"github.com/mtneug/hypochronos/timetable"
 	flag "github.com/spf13/pflag"
 )
 
@@ -46,22 +47,22 @@ func readAndSetDefaults(flags *flag.FlagSet) error {
 	}
 	label.DefaultMinDuration = defaultMinimumSchedulingDuration
 
-	// --default-policy
-	defaultPolicyStr, err := flags.GetString("default-policy")
+	// --default-state
+	defaultStateStr, err := flags.GetString("default-state")
 	if err != nil {
 		return err
 	}
-	defaultPolicy := types.Policy(defaultPolicyStr)
-	if defaultPolicy != types.PolicyActivated && defaultPolicy != types.PolicyDeactivated {
-		return errors.New("cmd: unknown policy")
+	defaultState := timetable.State(defaultStateStr)
+	if defaultState != model.StateActivated && defaultState != model.StateDeactivated {
+		return errors.New("cmd: unknown default state")
 	}
-	label.DefaultPolicy = defaultPolicy
+	label.DefaultState = defaultState
 
 	return nil
 }
 
 func init() {
 	rootCmd.Flags().String("default-timetable-period", "1m", "Default timetable update period")
-	rootCmd.Flags().String("default-policy", "activated", "Default policy (activated or deactivated)")
+	rootCmd.Flags().String("default-state", "activated", "Default state of a node (activated or deactivated)")
 	rootCmd.Flags().String("default-minimum-scheduling-duration", "1m", "Default minimum sheduling duration")
 }
