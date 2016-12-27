@@ -74,7 +74,9 @@ func labelState(serviceName string) string {
 	return fmt.Sprintf(stateLabelPattern, serviceName)
 }
 
-func setStateLabelAndInspect(ctx context.Context, serviceName string, node *swarm.Node, state timetable.State) (*swarm.Node, error) {
+func setStateLabelAndInspect(ctx context.Context, serviceName string, node *swarm.Node,
+	state timetable.State) (*swarm.Node, error) {
+
 	if node.Spec.Labels == nil {
 		node.Spec.Labels = make(map[string]string)
 	}
