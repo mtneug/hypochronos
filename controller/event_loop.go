@@ -20,10 +20,11 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/api/types/swarm"
-	"github.com/mtneug/hypochronos/api/types"
 	"github.com/mtneug/hypochronos/label"
+	"github.com/mtneug/hypochronos/model"
 	"github.com/mtneug/hypochronos/pkg/event"
 	"github.com/mtneug/hypochronos/servicehandler"
+	"github.com/mtneug/hypochronos/timetable"
 )
 
 func (c *Controller) runEventLoop(ctx context.Context, stopChan <-chan struct{}) error {
@@ -36,7 +37,7 @@ func (c *Controller) runEventLoop(ctx context.Context, stopChan <-chan struct{})
 	for {
 		select {
 		case e := <-eventQueue:
-			if types.IsServiceEvent(e) {
+			if model.IsServiceEvent(e) {
 				log.Debugf("Received %s event", e.Type)
 
 				serviceID, ok := e.Object.(string)
@@ -58,7 +59,7 @@ func (c *Controller) runEventLoop(ctx context.Context, stopChan <-chan struct{})
 
 func (c *Controller) handleServiceEvent(ctx context.Context, e event.Event, serviceID string) {
 	switch e.Type {
-	case types.EventTypeServiceCreated:
+	case model.EventTypeServiceCreated:
 		c.ServicesMap.Write(func(services map[string]swarm.Service) {
 			changed, err := c.addServiceHandler(ctx, services[serviceID])
 			if err != nil {
@@ -69,7 +70,7 @@ func (c *Controller) handleServiceEvent(ctx context.Context, e event.Event, serv
 			}
 		})
 
-	case types.EventTypeServiceUpdated:
+	case model.EventTypeServiceUpdated:
 		c.ServicesMap.Write(func(services map[string]swarm.Service) {
 			changed, err := c.updateServiceHandler(ctx, services[serviceID])
 			if err != nil {
@@ -80,7 +81,7 @@ func (c *Controller) handleServiceEvent(ctx context.Context, e event.Event, serv
 			}
 		})
 
-	case types.EventTypeServiceDeleted:
+	case model.EventTypeServiceDeleted:
 		c.ServicesMap.Write(func(services map[string]swarm.Service) {
 			changed, err := c.deleteServiceHandler(ctx, serviceID)
 			if err != nil {
@@ -126,13 +127,13 @@ func (c *Controller) deleteServiceHandler(ctx context.Context, serviceID string)
 func (c *Controller) constructServiceHandler(srv swarm.Service) (*servicehandler.ServiceHandler, error) {
 	labels := srv.Spec.Labels
 
-	tt := types.TimetableSpec{}
-	err := label.ParseTimetableSpec(&tt, labels)
+	tts := timetable.Spec{}
+	err := label.ParseTimetableSpec(&tts, labels)
 	if err != nil {
 		return nil, err
 	}
 
-	sh := servicehandler.New(srv.ID, tt, c.EventManager, c.NodesMap)
+	sh := servicehandler.New(srv.ID, tts, c.EventManager, c.NodesMap)
 	err = label.ParseServiceHandler(sh, labels)
 	if err != nil {
 		return nil, err

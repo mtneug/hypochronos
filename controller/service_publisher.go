@@ -21,8 +21,8 @@ import (
 	log "github.com/Sirupsen/logrus"
 	dockerTypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
-	"github.com/mtneug/hypochronos/api/types"
 	"github.com/mtneug/hypochronos/docker"
+	"github.com/mtneug/hypochronos/model"
 	"github.com/mtneug/hypochronos/pkg/event"
 )
 
@@ -48,12 +48,12 @@ func (c *Controller) runServiceEventsPublisher(ctx context.Context, stopChan <-c
 					// Add
 					services[srv.ID] = srv
 					log.Info("Service added")
-					eventQueue <- event.New(types.EventTypeServiceCreated, srv.ID)
+					eventQueue <- event.New(model.EventTypeServiceCreated, srv.ID)
 				} else if n.Version.Index < srv.Version.Index {
 					// Update
 					services[srv.ID] = srv
 					log.Info("Service updated")
-					eventQueue <- event.New(types.EventTypeServiceUpdated, srv.ID)
+					eventQueue <- event.New(model.EventTypeServiceUpdated, srv.ID)
 				}
 			})
 		}
@@ -64,7 +64,7 @@ func (c *Controller) runServiceEventsPublisher(ctx context.Context, stopChan <-c
 					// Delete
 					delete(services, srv.ID)
 					log.Info("Service updated")
-					eventQueue <- event.New(types.EventTypeServiceDeleted, srv.ID)
+					eventQueue <- event.New(model.EventTypeServiceDeleted, srv.ID)
 				}
 				delete(seen, id)
 			}
