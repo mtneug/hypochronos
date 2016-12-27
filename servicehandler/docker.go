@@ -20,32 +20,46 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	dockerTypes "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/events"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/mtneug/hypochronos/docker"
 	"github.com/mtneug/hypochronos/timetable"
 )
 
 const (
-	labelStatePattern = "de.mtneug.hypochronos.state.%s"
+	dockerSwarmServiceNameLabel = "com.docker.swarm.service.name"
+	stateLabelPattern           = "de.mtneug.hypochronos.state.%s"
 )
 
-func (sh *ServiceHandler) applyTimetable(ctx context.Context, nodeID string) {
-	log.Debugf("Applying timetable")
-	sh.NodesMap.Write(func(nodes map[string]swarm.Node) {
-		sh.timetableMutex.RLock()
-		defer sh.timetableMutex.RUnlock()
+func (sh *ServiceHandler) newDockerEvents(ctx context.Context) (<-chan events.Message, <-chan error) {
+	args := filters.NewArgs()
+	args.Add("type", "container")
+	args.Add("event", "create")
+	args.Add("label", dockerSwarmServiceNameLabel+"="+sh.ServiceName)
+	return docker.C.Events(ctx, dockerTypes.EventsOptions{Filters: args})
+}
 
+func (sh *ServiceHandler) applyTimetable(ctx context.Context, nodeID string) {
+	sh.NodesMap.Write(func(nodes map[string]swarm.Node) {
 		node, present := nodes[nodeID]
 		if present {
-			newState := sh.timetable.State(nodeID, time.Now().UTC())
-			curState := timetable.State(node.Spec.Labels[labelState(sh.ServiceID)])
+			sh.timetableMutex.RLock()
+			defer sh.timetableMutex.RUnlock()
+
+			// TODO: timetable might be nil
+			newState, until := sh.timetable.State(nodeID, time.Now().UTC())
+			curState := timetable.State(node.Spec.Labels[labelState(sh.ServiceName)])
 			if curState == "" {
 				curState = timetable.StateUndefined
 			}
-			log.Debugf("Current state: %s; New state: %s", curState, newState)
+			log.Debugf("Current state: %s; New state: %s until %s", curState, newState, until)
+			// TODO: use until
+			// TODO: remove containers
 
 			if newState != curState {
-				newNode, err := setStateLabelAndInspect(ctx, sh.ServiceID, &node, newState)
+				newNode, err := setStateLabelAndInspect(ctx, sh.ServiceName, &node, newState)
 				if err != nil {
 					log.WithError(err).Error("Failed to apply timetable")
 					return
@@ -54,14 +68,17 @@ func (sh *ServiceHandler) applyTimetable(ctx context.Context, nodeID string) {
 			}
 		}
 	})
-	log.Debugf("Applied timetable")
 }
 
-func setStateLabelAndInspect(ctx context.Context, serviceID string, node *swarm.Node, state timetable.State) (*swarm.Node, error) {
+func labelState(serviceName string) string {
+	return fmt.Sprintf(stateLabelPattern, serviceName)
+}
+
+func setStateLabelAndInspect(ctx context.Context, serviceName string, node *swarm.Node, state timetable.State) (*swarm.Node, error) {
 	if node.Spec.Labels == nil {
 		node.Spec.Labels = make(map[string]string)
 	}
-	node.Spec.Labels[labelState(serviceID)] = string(state)
+	node.Spec.Labels[labelState(serviceName)] = string(state)
 
 	err := docker.C.NodeUpdate(ctx, node.ID, node.Version, node.Spec)
 	if err != nil {
@@ -72,14 +89,10 @@ func setStateLabelAndInspect(ctx context.Context, serviceID string, node *swarm.
 	return &n, err
 }
 
-func labelState(serviceID string) string {
-	return fmt.Sprintf(labelStatePattern, serviceID)
-}
-
-func deleteStateLabel(ctx context.Context, serviceID string, node *swarm.Node) error {
+func deleteStateLabel(ctx context.Context, serviceName string, node *swarm.Node) error {
 	if node.Spec.Labels == nil {
 		return nil
 	}
-	delete(node.Spec.Labels, labelState(serviceID))
+	delete(node.Spec.Labels, labelState(serviceName))
 	return docker.C.NodeUpdate(ctx, node.ID, node.Version, node.Spec)
 }

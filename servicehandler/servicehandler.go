@@ -21,7 +21,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/api/types/swarm"
-	"github.com/mtneug/hypochronos/api/types"
 	"github.com/mtneug/hypochronos/pkg/event"
 	"github.com/mtneug/hypochronos/store"
 	"github.com/mtneug/hypochronos/timetable"
@@ -33,36 +32,32 @@ import (
 type ServiceHandler struct {
 	startstopper.StartStopper
 
-	ServiceID string
-	NodesMap  *store.NodesMap
-
-	timetable      *timetable.Timetable
-	timetableMutex sync.RWMutex
-	TimetableSpec  types.TimetableSpec
+	ServiceName string
+	NodesMap    *store.NodesMap
 
 	Period      time.Duration
-	Policy      types.Policy
 	MinDuration time.Duration
 
-	EventManager event.Manager
-	eventLoop    startstopper.StartStopper
+	TimetableSpec  timetable.Spec
+	timetable      *timetable.Timetable
+	timetableMutex sync.RWMutex
+
+	EventManager    event.Manager
+	eventLoop       startstopper.StartStopper
+	timetableFiller startstopper.StartStopper
 }
 
 // New creates a new ServiceHandler.
-func New(serviceID string, tt types.TimetableSpec, em event.Manager, nm *store.NodesMap) *ServiceHandler {
+func New(serviceName string, tts timetable.Spec, em event.Manager, nm *store.NodesMap) *ServiceHandler {
 	sh := &ServiceHandler{
-		ServiceID:     serviceID,
-		TimetableSpec: tt,
+		ServiceName:   serviceName,
+		TimetableSpec: tts,
 		NodesMap:      nm,
 		EventManager:  em,
-
-		// TODO: implement
-		timetable: &timetable.Timetable{
-			DefaultState: timetable.StateUndefined,
-		},
 	}
 	sh.StartStopper = startstopper.NewGo(startstopper.RunnerFunc(sh.run))
 	sh.eventLoop = startstopper.NewGo(startstopper.RunnerFunc(sh.runEventLoop))
+	sh.timetableFiller = startstopper.NewGo(startstopper.RunnerFunc(sh.runTimetableFiller))
 
 	return sh
 }
@@ -73,6 +68,7 @@ func (sh *ServiceHandler) run(ctx context.Context, stopChan <-chan struct{}) err
 
 	group := startstopper.NewGroup([]startstopper.StartStopper{
 		sh.eventLoop,
+		sh.timetableFiller,
 	})
 
 	_ = group.Start(ctx)
@@ -88,7 +84,7 @@ func (sh *ServiceHandler) run(ctx context.Context, stopChan <-chan struct{}) err
 	log.Debug("Delete node state labels")
 	sh.NodesMap.Write(func(nodes map[string]swarm.Node) {
 		for _, node := range nodes {
-			err = deleteStateLabel(ctx, sh.ServiceID, &node)
+			err = deleteStateLabel(ctx, sh.ServiceName, &node)
 			if err != nil {
 				log.WithError(err).Warn("Deletion of node state label failed")
 			}

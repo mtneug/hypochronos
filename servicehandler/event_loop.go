@@ -19,11 +19,7 @@ import (
 	"errors"
 
 	log "github.com/Sirupsen/logrus"
-	dockerTypes "github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/events"
-	"github.com/docker/docker/api/types/filters"
-	"github.com/mtneug/hypochronos/api/types"
-	"github.com/mtneug/hypochronos/docker"
+	"github.com/mtneug/hypochronos/model"
 )
 
 func (sh *ServiceHandler) runEventLoop(ctx context.Context, stopChan <-chan struct{}) error {
@@ -41,8 +37,8 @@ func (sh *ServiceHandler) runEventLoop(ctx context.Context, stopChan <-chan stru
 	for {
 		select {
 		case e := <-eventQueue:
-			if e.Type == types.EventTypeNodeCreated ||
-				e.Type == types.EventTypeNodeUpdated {
+			if e.Type == model.EventTypeNodeCreated ||
+				e.Type == model.EventTypeNodeUpdated {
 				log.Debugf("Received %s event", e.Type)
 
 				nodeID, ok := e.Object.(string)
@@ -68,12 +64,4 @@ func (sh *ServiceHandler) runEventLoop(ctx context.Context, stopChan <-chan stru
 			return ctx.Err()
 		}
 	}
-}
-
-func (sh *ServiceHandler) newDockerEvents(ctx context.Context) (<-chan events.Message, <-chan error) {
-	args := filters.NewArgs()
-	args.Add("type", "container")
-	args.Add("event", "create")
-	args.Add("label", "com.docker.swarm.service.id="+sh.ServiceID)
-	return docker.C.Events(ctx, dockerTypes.EventsOptions{Filters: args})
 }
