@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -132,7 +133,7 @@ var rootCmd = &cobra.Command{
 
 		// Handle termination
 		sig := make(chan os.Signal, 1)
-		signal.Notify(sig, os.Interrupt)
+		signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
 		go func() {
 			<-sig
 			log.Info("Shutting down")
