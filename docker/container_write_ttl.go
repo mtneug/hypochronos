@@ -15,11 +15,75 @@
 package docker
 
 import (
+	"archive/tar"
+	"bytes"
 	"context"
+	"encoding/json"
 	"time"
+
+	"github.com/docker/docker/api/types"
 )
 
+const TTLFilePath = "/etc/container-ttl"
+
+type api struct {
+	APIVersion string `json:"apiVersion"`
+}
+
+type metadata struct {
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+type ttlData struct {
+	TTL time.Time `json:"ttl"`
+}
+
+type ttlResponse struct {
+	api
+	Metadata metadata `json:"metadata"`
+	Data     ttlData  `json:"data"`
+}
+
 func ContainerWriteTTL(ctx context.Context, containerID string, until time.Time) error {
-	// TODO: implement
+	resp := ttlResponse{
+		api:      api{APIVersion: "1"},
+		Metadata: metadata{CreatedAt: time.Now().UTC()},
+		Data:     ttlData{TTL: until},
+	}
+
+	jsonResp, err := json.Marshal(resp)
+	if err != nil {
+		return err
+	}
+
+	buf := &bytes.Buffer{}
+	tw := tar.NewWriter(buf)
+
+	hdr := &tar.Header{
+		Name: TTLFilePath,
+		Mode: 0444,
+		Size: int64(len(jsonResp)),
+	}
+	err = tw.WriteHeader(hdr)
+	if err != nil {
+		return err
+	}
+
+	_, err = tw.Write(jsonResp)
+	if err != nil {
+		return err
+	}
+
+	err = tw.Close()
+	if err != nil {
+		return err
+	}
+
+	opts := types.CopyToContainerOptions{AllowOverwriteDirWithFile: true}
+	err = StdClient.CopyToContainer(ctx, containerID, "/", buf, opts)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
