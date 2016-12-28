@@ -21,6 +21,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/api/types/swarm"
+	"github.com/mtneug/hypochronos/docker"
 	"github.com/mtneug/hypochronos/pkg/event"
 	"github.com/mtneug/hypochronos/store"
 	"github.com/mtneug/hypochronos/timetable"
@@ -38,26 +39,25 @@ type ServiceHandler struct {
 	Period      time.Duration
 	MinDuration time.Duration
 
-	TimetableSpec  timetable.Spec
-	timetable      *timetable.Timetable
+	Timetable      timetable.Timetable
 	timetableMutex sync.RWMutex
 
-	EventManager    event.Manager
-	eventLoop       startstopper.StartStopper
-	timetableFiller startstopper.StartStopper
+	EventManager event.Manager
+	eventLoop    startstopper.StartStopper
+	periodLoop   startstopper.StartStopper
 }
 
 // New creates a new ServiceHandler.
-func New(serviceName string, tts timetable.Spec, em event.Manager, nm *store.NodesMap) *ServiceHandler {
+func New(serviceName string, tt timetable.Timetable, em event.Manager, nm *store.NodesMap) *ServiceHandler {
 	sh := &ServiceHandler{
-		ServiceName:   serviceName,
-		TimetableSpec: tts,
-		NodesMap:      nm,
-		EventManager:  em,
+		ServiceName:  serviceName,
+		Timetable:    tt,
+		NodesMap:     nm,
+		EventManager: em,
 	}
 	sh.StartStopper = startstopper.NewGo(startstopper.RunnerFunc(sh.run))
 	sh.eventLoop = startstopper.NewGo(startstopper.RunnerFunc(sh.runEventLoop))
-	sh.timetableFiller = startstopper.NewGo(startstopper.RunnerFunc(sh.runTimetableFiller))
+	sh.periodLoop = startstopper.NewGo(startstopper.RunnerFunc(sh.runPeriodLoop))
 
 	return sh
 }
@@ -66,9 +66,12 @@ func (sh *ServiceHandler) run(ctx context.Context, stopChan <-chan struct{}) err
 	log.Debug("Service handler started")
 	defer log.Debug("Service handler stopped")
 
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	group := startstopper.NewGroup([]startstopper.StartStopper{
 		sh.eventLoop,
-		sh.timetableFiller,
+		sh.periodLoop,
 	})
 
 	_ = group.Start(ctx)
@@ -81,13 +84,19 @@ func (sh *ServiceHandler) run(ctx context.Context, stopChan <-chan struct{}) err
 	_ = group.Stop(ctx)
 	err := group.Err(ctx)
 
-	log.Debug("Delete node state labels")
+	log.Debug("Delete service state labels")
 	sh.NodesMap.Write(func(nodes map[string]swarm.Node) {
-		for _, node := range nodes {
-			err = deleteStateLabel(ctx, sh.ServiceName, &node)
+		errChan := forEachKeyNodePair(ctx, nodes, func(ctx context.Context, key string, node swarm.Node) error {
+			err = docker.NodeDeleteServiceStateLabel(ctx, &node, sh.ServiceName)
 			if err != nil {
-				log.WithError(err).Warn("Deletion of node state label failed")
+				return err
 			}
+			nodes[key] = node
+			return nil
+		})
+
+		for err := range errChan {
+			log.WithError(err).Warn("Deletion of service state label failed")
 		}
 	})
 

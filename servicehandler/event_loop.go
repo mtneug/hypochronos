@@ -16,9 +16,12 @@ package servicehandler
 
 import (
 	"context"
-	"errors"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/docker/docker/api/types/events"
+	"github.com/docker/docker/api/types/swarm"
+	"github.com/mtneug/hypochronos/docker"
 	"github.com/mtneug/hypochronos/model"
 )
 
@@ -26,38 +29,53 @@ func (sh *ServiceHandler) runEventLoop(ctx context.Context, stopChan <-chan stru
 	log.Debug("Service event loop started")
 	defer log.Debug("Service event loop stopped")
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
 	eventQueue, unsub := sh.EventManager.Sub()
 	defer unsub()
 
-	dockerEvent, dockerErr := sh.newDockerEvents(ctx)
+	dockerEvent, dockerErr := docker.EventsServiceContainerCreate(ctx, sh.ServiceName)
 
 	for {
 		select {
 		case e := <-eventQueue:
-			if e.Type == model.EventTypeNodeCreated ||
-				e.Type == model.EventTypeNodeUpdated {
+			if e.Type == model.EventTypeNodeCreated || e.Type == model.EventTypeNodeUpdated {
 				log.Debugf("Received %s event", e.Type)
+				ctx2, cancel := sh.WithPeriod(ctx)
 
-				nodeID, ok := e.Object.(string)
-				if ok {
-					sh.applyTimetable(ctx, nodeID)
-				} else {
-					log.
-						WithError(errors.New("servicehandler: type assertion failed")).
-						Error("Failed to get node ID")
-				}
+				sh.NodesMap.Write(func(nodes map[string]swarm.Node) {
+					nodeID := e.Object.(string)
+					node := nodes[nodeID]
+
+					err := sh.applyTimetable(ctx2, &node)
+					if err != nil {
+						log.WithError(err).Error("Failed to apply timetable to node")
+						return
+					}
+
+					nodes[nodeID] = node
+				})
+
+				cancel()
 			}
-		case e := <-dockerEvent:
-			log.Debugf("Received %s_%s event", e.Type, e.Action)
 
-			containerID := e.Actor.ID
-			log.Debugf("Container ID: %s", containerID)
-			// TODO: implement
+		case e := <-dockerEvent:
+			if e.Type == events.ContainerEventType && e.Action == "create" {
+				log.Debugf("Received %s_%s event", e.Type, e.Action)
+				ctx2, cancel := sh.WithPeriod(ctx)
+				sh.timetableMutex.RLock()
+
+				containerID := e.Actor.ID
+				nodeID := e.Actor.Attributes["com.docker.swarm.node.id"]
+
+				// at this point it is ensured that the state is "activated"
+				_, until := sh.Timetable.State(nodeID, time.Now().UTC())
+				docker.ContainerWriteTTL(ctx2, containerID, until)
+
+				sh.timetableMutex.RUnlock()
+				cancel()
+			}
+
 		case <-dockerErr:
-			dockerEvent, dockerErr = sh.newDockerEvents(ctx)
+			dockerEvent, dockerErr = docker.EventsServiceContainerCreate(ctx, sh.ServiceName)
 		case <-stopChan:
 			return nil
 		case <-ctx.Done():
