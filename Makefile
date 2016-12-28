@@ -62,9 +62,9 @@ run: build
 	@bin/hypochronos \
 		--log-level debug \
 		--service-update-period 1s \
-		--node-update-period 1s
-		--default-timetable-update-period 1m \
-		--default-policy deactivated \
+		--node-update-period 1s \
+		--default-period 1m \
+		--default-state deactivated \
 		--default-minimum-scheduling-duration 10s
 
 clean:

@@ -25,8 +25,8 @@ import (
 )
 
 func readAndSetDefaults(flags *flag.FlagSet) error {
-	// --default-timetable-period
-	defaultTimetablePeriodStr, err := flags.GetString("default-timetable-period")
+	// --default-period
+	defaultTimetablePeriodStr, err := flags.GetString("default-period")
 	if err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func readAndSetDefaults(flags *flag.FlagSet) error {
 }
 
 func init() {
-	rootCmd.Flags().String("default-timetable-period", "1m", "Default timetable update period")
+	rootCmd.Flags().String("default-period", "1m", "Default period")
 	rootCmd.Flags().String("default-state", "activated", "Default state of a node (activated or deactivated)")
 	rootCmd.Flags().String("default-minimum-scheduling-duration", "1m", "Default minimum sheduling duration")
 }
