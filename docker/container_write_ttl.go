@@ -22,33 +22,14 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
+	"github.com/mtneug/hypochronos/model"
 )
 
-const TTLFilePath = "/etc/container-ttl"
-
-type api struct {
-	APIVersion string `json:"apiVersion"`
-}
-
-type metadata struct {
-	CreatedAt time.Time `json:"createdAt"`
-}
-
-type ttlData struct {
-	TTL time.Time `json:"ttl"`
-}
-
-type ttlResponse struct {
-	api
-	Metadata metadata `json:"metadata"`
-	Data     ttlData  `json:"data"`
-}
-
 func ContainerWriteTTL(ctx context.Context, containerID string, until time.Time) error {
-	resp := ttlResponse{
-		api:      api{APIVersion: "1"},
-		Metadata: metadata{CreatedAt: time.Now().UTC()},
-		Data:     ttlData{TTL: until},
+	resp := model.TTLResponse{
+		API:      model.API{APIVersion: "1"},
+		Metadata: model.Metadata{CreatedAt: time.Now().UTC()},
+		Data:     model.TTLData{TTL: until},
 	}
 
 	jsonResp, err := json.Marshal(resp)
@@ -60,7 +41,7 @@ func ContainerWriteTTL(ctx context.Context, containerID string, until time.Time)
 	tw := tar.NewWriter(buf)
 
 	hdr := &tar.Header{
-		Name: TTLFilePath,
+		Name: model.TTLFilePath,
 		Mode: 0444,
 		Size: int64(len(jsonResp)),
 	}
