@@ -24,8 +24,8 @@ import (
 )
 
 var (
-	// C is the default Docker client instance.
-	C *client.Client
+	// StdClient is the default Docker client instance.
+	StdClient *client.Client
 
 	// Err is the error that was returned when creating the Docker client.
 	Err error
@@ -42,7 +42,7 @@ var (
 )
 
 func init() {
-	C, Err = client.NewEnvClient()
+	StdClient, Err = client.NewEnvClient()
 }
 
 // PrintInfo writes informations about Docker relevant to hypochronos to the
@@ -51,12 +51,12 @@ func init() {
 //	// Print to Stdout
 //	docker.PrintInfo(context.Background(), os.Stdout)
 func PrintInfo(ctx context.Context, w io.Writer) (err error) {
-	i, err := C.Info(ctx)
+	i, err := StdClient.Info(ctx)
 	if err != nil {
 		return
 	}
 
-	s, err := C.ServerVersion(ctx)
+	s, err := StdClient.ServerVersion(ctx)
 	if err != nil {
 		return
 	}

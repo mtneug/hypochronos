@@ -12,16 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package integration
+package docker
 
 import (
-	"testing"
+	"context"
 
-	"github.com/mtneug/hypochronos/docker"
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/filters"
 )
 
-func TestInitializeClient(t *testing.T) {
-	if docker.StdClient == nil || docker.Err != nil {
-		t.Error("Expected client to be initialized")
-	}
+func ContainerListNode(ctx context.Context, nodeID string) ([]types.Container, error) {
+	args := filters.NewArgs()
+	args.Add("label", dockerSwarmNodeIDLabel+"="+nodeID)
+	return StdClient.ContainerList(ctx, types.ContainerListOptions{Filter: args})
 }

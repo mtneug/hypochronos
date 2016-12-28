@@ -34,7 +34,7 @@ func (c *Controller) runServiceEventsPublisher(ctx context.Context, stopChan <-c
 	seen := make(map[string]bool)
 
 	tick := func() {
-		services, err := docker.C.ServiceList(ctx, dockerTypes.ServiceListOptions{})
+		services, err := docker.StdClient.ServiceList(ctx, dockerTypes.ServiceListOptions{})
 		if err != nil {
 			log.WithError(err).Error("Failed to get list of services")
 			return

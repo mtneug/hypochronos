@@ -12,16 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package integration
+package docker
 
-import (
-	"testing"
+import "context"
 
-	"github.com/mtneug/hypochronos/docker"
-)
-
-func TestInitializeClient(t *testing.T) {
-	if docker.StdClient == nil || docker.Err != nil {
-		t.Error("Expected client to be initialized")
-	}
+func ContainerRemoveGracefully(ctx context.Context, containerID string) error {
+	// TODO: implement
+	return nil
 }

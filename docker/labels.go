@@ -12,16 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package integration
+package docker
 
-import (
-	"testing"
+const (
+	dockerSwarmNodeIDLabel      = "com.docker.swarm.node.id"
+	dockerSwarmServiceNameLabel = "com.docker.swarm.service.name"
 
-	"github.com/mtneug/hypochronos/docker"
+	hypochronosStateLabelPattern = "de.mtneug.hypochronos.state.%s"
 )
-
-func TestInitializeClient(t *testing.T) {
-	if docker.StdClient == nil || docker.Err != nil {
-		t.Error("Expected client to be initialized")
-	}
-}

@@ -34,7 +34,7 @@ func (c *Controller) runNodeEventsPublisher(ctx context.Context, stopChan <-chan
 	seen := make(map[string]bool)
 
 	tick := func() {
-		nodes, err := docker.C.NodeList(ctx, dockerTypes.NodeListOptions{})
+		nodes, err := docker.StdClient.NodeList(ctx, dockerTypes.NodeListOptions{})
 		if err != nil {
 			log.WithError(err).Error("Failed to get list of nodes")
 			return

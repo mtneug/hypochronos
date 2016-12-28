@@ -12,16 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package integration
+package docker
 
 import (
-	"testing"
+	"context"
 
-	"github.com/mtneug/hypochronos/docker"
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/events"
+	"github.com/docker/docker/api/types/filters"
 )
 
-func TestInitializeClient(t *testing.T) {
-	if docker.StdClient == nil || docker.Err != nil {
-		t.Error("Expected client to be initialized")
-	}
+func EventsServiceContainerCreate(ctx context.Context, serviceName string) (<-chan events.Message, <-chan error) {
+	args := filters.NewArgs()
+	args.Add("type", events.ContainerEventType)
+	args.Add("event", "create")
+	args.Add("label", dockerSwarmServiceNameLabel+"="+serviceName)
+	return StdClient.Events(ctx, types.EventsOptions{Filters: args})
 }
