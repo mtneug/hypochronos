@@ -76,9 +76,8 @@ func (sh *ServiceHandler) runPeriodLoop(ctx context.Context, stopChan <-chan str
 		}()
 	}
 
+	tick()
 	for {
-		tick()
-
 		select {
 		case <-time.After(sh.Period):
 			tick()

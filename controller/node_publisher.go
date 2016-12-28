@@ -70,9 +70,8 @@ func (c *Controller) runNodeEventsPublisher(ctx context.Context, stopChan <-chan
 		})
 	}
 
+	tick()
 	for {
-		tick()
-
 		select {
 		case <-time.After(c.NodeUpdatePeriod):
 			tick()

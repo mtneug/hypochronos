@@ -71,9 +71,8 @@ func (c *Controller) runServiceEventsPublisher(ctx context.Context, stopChan <-c
 		})
 	}
 
+	tick()
 	for {
-		tick()
-
 		select {
 		case <-time.After(c.ServiceUpdatePeriod):
 			tick()
