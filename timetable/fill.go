@@ -14,24 +14,27 @@
 
 package timetable
 
-import "time"
+import (
+	"errors"
+	"time"
+)
 
-// Fill a new timetable based on the spec.
-func Fill(spec Spec) (tt *Timetable, err error) {
-	tt = &Timetable{
-		Spec:     spec,
-		FilledAt: time.Now().UTC(),
-	}
+var (
+	ErrUnknownType = errors.New("timetable: unknown type")
+)
 
-	switch spec.Type {
+// Fill a timetable.
+func Fill(tt *Timetable) error {
+	switch tt.Spec.Type {
 	case TypeJSON:
-		err = jsonFiller(tt)
+		return jsonFiller(tt)
 	}
 
-	return
+	return ErrUnknownType
 }
 
 func jsonFiller(tt *Timetable) error {
 	// TODO: implement
+	tt.FilledAt = time.Now().UTC()
 	return nil
 }

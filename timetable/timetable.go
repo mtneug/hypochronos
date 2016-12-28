@@ -14,7 +14,11 @@
 
 package timetable
 
-import "time"
+import (
+	"time"
+
+	"github.com/mtneug/pkg/ulid"
+)
 
 // State of a resource.
 type State string
@@ -53,6 +57,15 @@ type Timetable struct {
 	ID       string
 	Spec     Spec
 	FilledAt time.Time
+}
+
+// New creates a new timetable
+func New(spec Spec) Timetable {
+	tt := Timetable{
+		ID:   ulid.New().String(),
+		Spec: spec,
+	}
+	return tt
 }
 
 // State of the resource at given time.
