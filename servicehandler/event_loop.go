@@ -39,7 +39,7 @@ func (sh *ServiceHandler) runEventLoop(ctx context.Context, stopChan <-chan stru
 		case e := <-eventQueue:
 			if e.Type == model.EventTypeNodeCreated || e.Type == model.EventTypeNodeUpdated {
 				log.Debugf("Received %s event", e.Type)
-				ctx2, cancel := sh.WithPeriod(ctx)
+				ctx2, cancel2 := sh.WithPeriod(ctx)
 
 				sh.NodesMap.Write(func(nodes map[string]swarm.Node) {
 					nodeID := e.Object.(string)
@@ -54,24 +54,28 @@ func (sh *ServiceHandler) runEventLoop(ctx context.Context, stopChan <-chan stru
 					nodes[nodeID] = node
 				})
 
-				cancel()
+				cancel2()
 			}
 
 		case e := <-dockerEvent:
 			if e.Type == events.ContainerEventType && e.Action == "create" {
 				log.Debugf("Received %s_%s event", e.Type, e.Action)
-				ctx2, cancel := sh.WithPeriod(ctx)
+				ctx2, cancel2 := sh.WithPeriod(ctx)
 				sh.timetableMutex.RLock()
 
 				containerID := e.Actor.ID
 				nodeID := e.Actor.Attributes["com.docker.swarm.node.id"]
 
 				// at this point it is ensured that the state is "activated"
+				log.Debug("Writing container TTL")
 				_, until := sh.Timetable.State(nodeID, time.Now().UTC())
-				docker.ContainerWriteTTL(ctx2, containerID, until)
+				err := docker.ContainerWriteTTL(ctx2, containerID, until)
+				if err != nil {
+					log.WithError(err).Warn("Writing container TTL failed")
+				}
 
 				sh.timetableMutex.RUnlock()
-				cancel()
+				cancel2()
 			}
 
 		case <-dockerErr:
