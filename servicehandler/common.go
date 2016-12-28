@@ -132,10 +132,20 @@ func (sh *ServiceHandler) applyTimetable(ctx context.Context, node *swarm.Node) 
 				log.WithError(err).Warn("Writing container TTL failed")
 			}
 		} else {
+			// FIX: this should normally be done by Docker Swarm
 			log.Debug("Stopping and removing running containers")
 
+			// Get stop grace period
+			var timeout *time.Duration
+			srv, _, err := docker.StdClient.ServiceInspectWithRaw(ctx, sh.ServiceName)
+			if err != nil {
+				log.WithError(err).Warn("Failed to get stop grace period of service")
+			} else {
+				timeout = srv.Spec.TaskTemplate.ContainerSpec.StopGracePeriod
+			}
+
 			errChan := forEachContainer(ctx, containers, func(ctx context.Context, container types.Container) error {
-				err2 := docker.ContainerRemoveGracefully(ctx, container.ID)
+				err2 := docker.ContainerStopAndRemoveGracefully(ctx, container.ID, timeout)
 				if err2 != nil {
 					return err2
 				}

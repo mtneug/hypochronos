@@ -14,9 +14,24 @@
 
 package docker
 
-import "context"
+import (
+	"context"
+	"time"
 
-func ContainerRemoveGracefully(ctx context.Context, containerID string) error {
-	// TODO: implement
+	"github.com/docker/docker/api/types"
+)
+
+func ContainerStopAndRemoveGracefully(ctx context.Context, containerID string, timeout *time.Duration) error {
+	err := StdClient.ContainerStop(ctx, containerID, timeout)
+	if err != nil {
+		return err
+	}
+
+	opts := types.ContainerRemoveOptions{Force: true}
+	err = StdClient.ContainerRemove(ctx, containerID, opts)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
