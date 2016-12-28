@@ -119,13 +119,18 @@ func (c *Controller) deleteServiceHandler(ctx context.Context, serviceID string)
 func (c *Controller) constructServiceHandler(srv swarm.Service) (*servicehandler.ServiceHandler, error) {
 	labels := srv.Spec.Labels
 
+	// Timetable spec
 	tts := timetable.Spec{}
 	err := label.ParseTimetableSpec(&tts, labels)
 	if err != nil {
 		return nil, err
 	}
 
-	sh := servicehandler.New(srv.Spec.Name, tts, c.EventManager, c.NodesMap)
+	// Timetable
+	tt := timetable.New(tts)
+
+	// Service handler
+	sh := servicehandler.New(srv.Spec.Name, tt, c.EventManager, c.NodesMap)
 	err = label.ParseServiceHandler(sh, labels)
 	if err != nil {
 		return nil, err
