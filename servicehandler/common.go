@@ -94,7 +94,8 @@ func (sh *ServiceHandler) applyTimetable(ctx context.Context, node *swarm.Node) 
 	defer sh.timetableMutex.RUnlock()
 
 	// Get new state
-	newState, until := sh.Timetable.State(node.ID, time.Now().UTC())
+	now := time.Now().UTC()
+	newState, until := sh.Timetable.State(node.ID, now)
 	curState := timetable.State(docker.NodeGetServiceStateLabel(node, sh.ServiceName))
 
 	if curState == "" {
@@ -104,6 +105,11 @@ func (sh *ServiceHandler) applyTimetable(ctx context.Context, node *swarm.Node) 
 
 	// If different: change it
 	if newState != curState {
+		if newState == model.StateActivated && until.Sub(now) < sh.MinDuration {
+			log.Debug("Skipping activation: phase is to short")
+			return nil
+		}
+
 		log.Debug("Setting service state label")
 		err := docker.NodeSetServiceStateLabel(ctx, node, sh.ServiceName, newState)
 		if err != nil {
