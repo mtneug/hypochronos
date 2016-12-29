@@ -81,8 +81,54 @@ func New(spec Spec) Timetable {
 	return tt
 }
 
+var (
+	// MaxTime that can be un/marshaled.
+	MaxTime = time.Date(9999, time.December, 31, 23, 59, 59, 999999999, time.UTC)
+)
+
 // State of the resource at given time.
 func (tt *Timetable) State(id string, t time.Time) (state State, until time.Time) {
-	// TODO: implement
-	return tt.Spec.DefaultState, t.Add(24 * time.Hour)
+	entries, ok := tt.idSortedEntriesMap[id]
+	if !ok {
+		return tt.Spec.DefaultState, MaxTime
+	}
+
+	l := len(entries)
+	i := binarySearch(entries, t, 0, l-1)
+
+	if i == -1 {
+		state = tt.Spec.DefaultState
+	} else {
+		state = entries[i].State
+	}
+
+	if i+1 < l {
+		until = entries[i+1].StartsAt
+	} else {
+		until = MaxTime
+	}
+
+	return
+}
+
+func binarySearch(entries []Entry, t time.Time, sIdx, eIdx int) int {
+	if eIdx < sIdx {
+		// before first entry
+		return -1
+	}
+
+	mIdx := (sIdx + eIdx) / 2
+
+	if entries[mIdx].StartsAt.After(t) {
+		// left side
+		return binarySearch(entries, t, sIdx, mIdx-1)
+	}
+
+	if mIdx == eIdx || entries[mIdx+1].StartsAt.After(t) {
+		// found
+		return mIdx
+	}
+
+	// right side
+	return binarySearch(entries, t, mIdx+1, eIdx)
 }
