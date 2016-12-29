@@ -57,7 +57,20 @@ type Timetable struct {
 	ID       string
 	Spec     Spec
 	FilledAt time.Time
+
+	idSortedEntriesMap map[string][]Entry
 }
+
+type Entry struct {
+	StartsAt time.Time
+	State    State
+}
+
+type byTime []Entry
+
+func (e byTime) Len() int           { return len(e) }
+func (e byTime) Swap(i, j int)      { e[i], e[j] = e[j], e[i] }
+func (e byTime) Less(i, j int) bool { return e[i].StartsAt.Before(e[j].StartsAt) }
 
 // New creates a new timetable
 func New(spec Spec) Timetable {

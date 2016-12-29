@@ -15,7 +15,11 @@
 package timetable
 
 import (
+	"encoding/json"
 	"errors"
+	"net/http"
+	"sort"
+	"sync"
 	"time"
 )
 
@@ -33,8 +37,77 @@ func Fill(tt *Timetable) error {
 	return ErrUnknownType
 }
 
+type API struct {
+	APIVersion string `json:"apiVersion"`
+}
+
+type Metadata struct {
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+type JSONFillerSpec struct {
+	Timetable map[string]map[time.Time]State `json:"createdAt"`
+}
+
+type JSONFillerResponse struct {
+	API
+	Metadata Metadata       `json:"metadata"`
+	Spec     JSONFillerSpec `json:"spec"`
+}
+
 func jsonFiller(tt *Timetable) error {
-	// TODO: implement
+	// Load
+	resp, err := http.Get(tt.Spec.JSONSpec.URL)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// Decode
+	var rawTt JSONFillerResponse
+	err = json.NewDecoder(resp.Body).Decode(&rawTt)
+	if err != nil {
+		return err
+	}
+
+	if rawTt.APIVersion != "1" {
+		return errors.New("API version does not match")
+	}
+
+	// Remove old entries
+	tt.idSortedEntriesMap = make(map[string][]Entry, len(rawTt.Spec.Timetable))
+
+	// Fill new entries
+	var wg sync.WaitGroup
+	for _id, _timeStateMap := range rawTt.Spec.Timetable {
+		id, timeStateMap := _id, _timeStateMap
+		wg.Add(1)
+
+		go func() {
+			// Create entries
+			entries := make([]Entry, 0, len(timeStateMap))
+			for t, s := range timeStateMap {
+				entries = append(entries, Entry{StartsAt: t, State: s})
+			}
+
+			// Sort entries
+			sort.Sort(byTime(entries))
+
+			// Remove unneeded entries
+			for i := 1; i < len(entries); i++ {
+				if entries[i-1].State == entries[i].State {
+					entries = append(entries[:i], entries[i+1:]...)
+					i--
+				}
+			}
+
+			// Store entries
+			tt.idSortedEntriesMap[id] = entries
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+
 	tt.FilledAt = time.Now().UTC()
 	return nil
 }
