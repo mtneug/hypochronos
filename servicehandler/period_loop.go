@@ -34,7 +34,7 @@ func (sh *ServiceHandler) runPeriodLoop(ctx context.Context, stopChan <-chan str
 		// Cancel last period
 		if cancelPeriodCtx != nil {
 			cancelPeriodCtx()
-			log.Debug("Period ended")
+			log.Debug("-------------------- Period ended   --------------------")
 		}
 
 		// Filling Timetable
@@ -48,8 +48,9 @@ func (sh *ServiceHandler) runPeriodLoop(ctx context.Context, stopChan <-chan str
 		sh.timetableMutex.Unlock()
 
 		// Start a new period
-		log.Debug("Period started")
+		log.Debug("-------------------- Period started --------------------")
 		periodCtx, cancelPeriodCtx = sh.WithPeriod(ctx)
+		periodEnd := sh.PeriodEnd()
 
 		go func() {
 			// Applying timetable
@@ -72,7 +73,47 @@ func (sh *ServiceHandler) runPeriodLoop(ctx context.Context, stopChan <-chan str
 
 			// Schedule state changes
 			log.Debug("Schedule state changes")
-			// TODO: implement
+			sh.NodesMap.Read(func(nodes map[string]swarm.Node) {
+				sh.timetableMutex.RLock()
+				defer sh.timetableMutex.RUnlock()
+
+				now := time.Now().UTC()
+
+				errChan := forEachKeyNodePair(periodCtx, nodes, func(ctx context.Context, key string, node swarm.Node) error {
+					entries := sh.Timetable.Entries(key).Since(now).Until(periodEnd)
+					_, _until := sh.Timetable.State(key, periodEnd)
+
+					for i := len(entries) - 1; i >= 0; i-- {
+						entry, until := entries[i], _until
+
+						if i > 0 {
+							_until = entries[i-1].StartsAt
+						}
+
+						go func() {
+							time.Sleep(now.Sub(entry.StartsAt))
+
+							sh.NodesMap.Write(func(nodes map[string]swarm.Node) {
+								node := nodes[key]
+
+								err := sh.setState(ctx, &node, entry.State, until)
+								if err != nil {
+									log.WithError(err).Error("Setting state failed")
+									return
+								}
+
+								nodes[key] = node
+							})
+						}()
+					}
+
+					return nil
+				})
+
+				for err := range errChan {
+					log.WithError(err).Error("Schedule state changes failed")
+				}
+			})
 		}()
 	}
 
