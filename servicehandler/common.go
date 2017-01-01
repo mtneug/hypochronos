@@ -30,10 +30,20 @@ import (
 // WithPeriod creates a new context with the deadline set to the end of the
 // current period.
 func (sh *ServiceHandler) WithPeriod(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithDeadline(ctx, sh.PeriodEnd())
+}
+
+// PeriodStart time of current period.
+func (sh *ServiceHandler) PeriodStart() time.Time {
 	sh.timetableMutex.RLock()
 	defer sh.timetableMutex.RUnlock()
 
-	return context.WithDeadline(ctx, sh.Timetable.FilledAt.Add(sh.Period))
+	return sh.Timetable.FilledAt
+}
+
+// PeriodEnd time of current period.
+func (sh *ServiceHandler) PeriodEnd() time.Time {
+	return sh.PeriodStart().Add(sh.Period)
 }
 
 func forEachKeyNodePair(ctx context.Context, nm map[string]swarm.Node,
