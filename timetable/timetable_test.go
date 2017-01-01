@@ -15,7 +15,6 @@
 package timetable
 
 import (
-	"reflect"
 	"testing"
 	"time"
 
@@ -130,8 +129,33 @@ func TestSortedEntriesSince(t *testing.T) {
 
 	for _, e := range examples {
 		filtered := e.entries.Since(e.time)
-		require.True(t, reflect.DeepEqual(filtered, e.filtered))
+		require.Equal(t, filtered, e.filtered)
 	}
+}
+
+func TestTimetableEntries(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now().UTC()
+
+	entries := SortedEntries([]Entry{
+		Entry{StartsAt: now.Add(+10 * time.Second)},
+		Entry{StartsAt: now.Add(+20 * time.Second)},
+		Entry{StartsAt: now.Add(+30 * time.Second)},
+		Entry{StartsAt: now.Add(+40 * time.Second)},
+		Entry{StartsAt: now.Add(+50 * time.Second)},
+		Entry{StartsAt: now.Add(+60 * time.Second)},
+		Entry{StartsAt: now.Add(+70 * time.Second)},
+	})
+
+	tt := Timetable{
+		idSortedEntriesMap: map[string][]Entry{
+			"test": entries,
+		},
+	}
+
+	e := tt.Entries("test")
+	require.Equal(t, entries, e)
 }
 
 func TestBinarySearch(t *testing.T) {

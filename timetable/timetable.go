@@ -52,15 +52,6 @@ type JSONSpec struct {
 	URL string
 }
 
-// Timetable for resources.
-type Timetable struct {
-	ID       string
-	Spec     Spec
-	FilledAt time.Time
-
-	idSortedEntriesMap map[string][]Entry
-}
-
 // Entry of a timetable.
 type Entry struct {
 	StartsAt time.Time
@@ -105,6 +96,20 @@ func (e byTime) Len() int           { return len(e) }
 func (e byTime) Swap(i, j int)      { e[i], e[j] = e[j], e[i] }
 func (e byTime) Less(i, j int) bool { return e[i].StartsAt.Before(e[j].StartsAt) }
 
+// Timetable for resources.
+type Timetable struct {
+	ID       string
+	Spec     Spec
+	FilledAt time.Time
+
+	idSortedEntriesMap map[string][]Entry
+}
+
+var (
+	// MaxTime that can be un/marshaled.
+	MaxTime = time.Date(9999, time.December, 31, 23, 59, 59, 999999999, time.UTC)
+)
+
 // New creates a new timetable
 func New(spec Spec) Timetable {
 	tt := Timetable{
@@ -114,11 +119,8 @@ func New(spec Spec) Timetable {
 	return tt
 }
 
-var (
-	// MaxTime that can be un/marshaled.
-	MaxTime = time.Date(9999, time.December, 31, 23, 59, 59, 999999999, time.UTC)
-)
-
+// Entries returns a copy of the internal entries for the resource with given
+// id. The entries are sorted by time.
 func (tt *Timetable) Entries(id string) SortedEntries {
 	eOrig, ok := tt.idSortedEntriesMap[id]
 	if !ok {
