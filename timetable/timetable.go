@@ -87,7 +87,7 @@ func (e SortedEntries) Until(t time.Time) SortedEntries {
 		return make([]Entry, 0, 0)
 	}
 
-	return e[:i]
+	return e[:i+1]
 }
 
 type byTime []Entry
