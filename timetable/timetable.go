@@ -70,6 +70,7 @@ type Entry struct {
 // SortedEntries of a timetable.
 type SortedEntries []Entry
 
+// Since filters for entries starting after given time.
 func (e SortedEntries) Since(t time.Time) SortedEntries {
 	i := binarySearch(e, t, 0, len(e)-1)
 

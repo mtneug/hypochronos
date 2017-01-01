@@ -15,11 +15,124 @@
 package timetable
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 )
+
+func TestSortedEntriesSince(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now().UTC()
+
+	examples := []struct {
+		entries  SortedEntries
+		filtered SortedEntries
+		time     time.Time
+	}{
+		{
+			time:     now,
+			entries:  []Entry{},
+			filtered: []Entry{},
+		},
+		{
+			time: now,
+			entries: []Entry{
+				Entry{StartsAt: now.Add(+10 * time.Second)},
+				Entry{StartsAt: now.Add(+20 * time.Second)},
+				Entry{StartsAt: now.Add(+30 * time.Second)},
+				Entry{StartsAt: now.Add(+40 * time.Second)},
+				Entry{StartsAt: now.Add(+50 * time.Second)},
+				Entry{StartsAt: now.Add(+60 * time.Second)},
+				Entry{StartsAt: now.Add(+70 * time.Second)},
+			},
+			filtered: []Entry{
+				Entry{StartsAt: now.Add(+10 * time.Second)},
+				Entry{StartsAt: now.Add(+20 * time.Second)},
+				Entry{StartsAt: now.Add(+30 * time.Second)},
+				Entry{StartsAt: now.Add(+40 * time.Second)},
+				Entry{StartsAt: now.Add(+50 * time.Second)},
+				Entry{StartsAt: now.Add(+60 * time.Second)},
+				Entry{StartsAt: now.Add(+70 * time.Second)},
+			},
+		},
+		{
+			time: now,
+			entries: []Entry{
+				Entry{StartsAt: now},
+				Entry{StartsAt: now.Add(+10 * time.Second)},
+				Entry{StartsAt: now.Add(+20 * time.Second)},
+				Entry{StartsAt: now.Add(+30 * time.Second)},
+				Entry{StartsAt: now.Add(+40 * time.Second)},
+				Entry{StartsAt: now.Add(+50 * time.Second)},
+				Entry{StartsAt: now.Add(+60 * time.Second)},
+			},
+			filtered: []Entry{
+				Entry{StartsAt: now},
+				Entry{StartsAt: now.Add(+10 * time.Second)},
+				Entry{StartsAt: now.Add(+20 * time.Second)},
+				Entry{StartsAt: now.Add(+30 * time.Second)},
+				Entry{StartsAt: now.Add(+40 * time.Second)},
+				Entry{StartsAt: now.Add(+50 * time.Second)},
+				Entry{StartsAt: now.Add(+60 * time.Second)},
+			},
+		},
+		{
+			time: now,
+			entries: []Entry{
+				Entry{StartsAt: now.Add(-10 * time.Second)},
+				Entry{StartsAt: now.Add(+10 * time.Second)},
+				Entry{StartsAt: now.Add(+20 * time.Second)},
+				Entry{StartsAt: now.Add(+30 * time.Second)},
+				Entry{StartsAt: now.Add(+40 * time.Second)},
+				Entry{StartsAt: now.Add(+50 * time.Second)},
+				Entry{StartsAt: now.Add(+60 * time.Second)},
+			},
+			filtered: []Entry{
+				Entry{StartsAt: now.Add(+10 * time.Second)},
+				Entry{StartsAt: now.Add(+20 * time.Second)},
+				Entry{StartsAt: now.Add(+30 * time.Second)},
+				Entry{StartsAt: now.Add(+40 * time.Second)},
+				Entry{StartsAt: now.Add(+50 * time.Second)},
+				Entry{StartsAt: now.Add(+60 * time.Second)},
+			},
+		},
+		{
+			time: now,
+			entries: []Entry{
+				Entry{StartsAt: now.Add(-60 * time.Second)},
+				Entry{StartsAt: now.Add(-50 * time.Second)},
+				Entry{StartsAt: now.Add(-40 * time.Second)},
+				Entry{StartsAt: now.Add(-30 * time.Second)},
+				Entry{StartsAt: now.Add(-20 * time.Second)},
+				Entry{StartsAt: now.Add(-10 * time.Second)},
+				Entry{StartsAt: now},
+			},
+			filtered: []Entry{
+				Entry{StartsAt: now},
+			},
+		},
+		{
+			time: now,
+			entries: []Entry{
+				Entry{StartsAt: now.Add(-60 * time.Second)},
+				Entry{StartsAt: now.Add(-50 * time.Second)},
+				Entry{StartsAt: now.Add(-40 * time.Second)},
+				Entry{StartsAt: now.Add(-30 * time.Second)},
+				Entry{StartsAt: now.Add(-20 * time.Second)},
+				Entry{StartsAt: now.Add(-10 * time.Second)},
+			},
+			filtered: []Entry{},
+		},
+	}
+
+	for _, e := range examples {
+		filtered := e.entries.Since(e.time)
+		require.True(t, reflect.DeepEqual(filtered, e.filtered))
+	}
+}
 
 func TestBinarySearch(t *testing.T) {
 	t.Parallel()
