@@ -85,13 +85,11 @@ func (sh *ServiceHandler) runPeriodLoop(ctx context.Context, stopChan <-chan str
 
 					for i := len(entries) - 1; i >= 0; i-- {
 						entry, until := entries[i], _until
-
-						if i > 0 {
-							_until = entries[i-1].StartsAt
-						}
+						_until = entries[i].StartsAt
 
 						go func() {
-							time.Sleep(now.Sub(entry.StartsAt))
+							log.Debugf("State change to '%s' scheduled for %s until %s", entry.State, entry.StartsAt, until)
+							time.Sleep(entry.StartsAt.Sub(now))
 
 							sh.NodesMap.Write(func(nodes map[string]swarm.Node) {
 								node := nodes[key]
