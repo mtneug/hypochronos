@@ -51,6 +51,7 @@ func (sh *ServiceHandler) runPeriodLoop(ctx context.Context, stopChan <-chan str
 		log.Debug("-------------------- Period started --------------------")
 		periodCtx, cancelPeriodCtx = sh.WithPeriod(ctx)
 		periodEnd := sh.PeriodEnd()
+		log.Debugf("Period Start: %s; Period End: %s", sh.PeriodStart(), periodEnd)
 
 		go func() {
 			// Applying timetable
