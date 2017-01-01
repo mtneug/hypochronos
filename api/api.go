@@ -20,59 +20,57 @@ import (
 	"net/http"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/mtneug/pkg/startstopper"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// Config for a hypochronos API server.
-type Config struct {
-	Addr string
-}
-
 // Server implements a hypochronos API server.
 type Server struct {
-	config   *Config
-	server   *http.Server
-	err      error
-	doneChan chan struct{}
+	startstopper.StartStopper
+
+	Addr   string
+	server *http.Server
 }
 
 // New creates a new server.
-func New(c *Config) *Server {
+func New(addr string) *Server {
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", prometheus.Handler())
-	// TODO: connect ErrorLog to logrus
-	srv := &Server{
-		config:   c,
-		server:   &http.Server{Handler: mux},
-		doneChan: make(chan struct{}),
-	}
 
-	return srv
+	loggedMux := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Debugf("%s \"%s %s %s\"", r.RemoteAddr, r.Method, r.URL, r.Proto)
+		mux.ServeHTTP(w, r)
+	})
+
+	s := &Server{
+		Addr:   addr,
+		server: &http.Server{Handler: loggedMux},
+	}
+	s.StartStopper = startstopper.NewGo(startstopper.RunnerFunc(s.run))
+
+	return s
 }
 
-// Start the API server and listens for requests.
-func (s *Server) Start() error {
-	ln, err := net.Listen("tcp", s.config.Addr)
+func (s *Server) run(ctx context.Context, stopChan <-chan struct{}) error {
+	log.Debug("API server started")
+	defer log.Debug("API server stopped")
+
+	ln, err := net.Listen("tcp", s.Addr)
 	if err != nil {
 		return err
 	}
 
-	go func() {
-		s.err = s.server.Serve(ln)
-		close(s.doneChan)
-		log.Debug("API server stopped")
-	}()
-	log.Debug("API server started")
+	errChan := make(chan error)
+	go func() { errChan <- s.server.Serve(ln) }()
+
+	select {
+	case err = <-errChan:
+		return err
+	case <-stopChan:
+	case <-ctx.Done():
+	}
+
+	// TODO: actually stop the server
 
 	return nil
-}
-
-// Err returns an error object after the server has stopped.
-func (s *Server) Err(ctx context.Context) error {
-	select {
-	case <-s.doneChan:
-		return s.err
-	case <-ctx.Done():
-		return ctx.Err()
-	}
 }
