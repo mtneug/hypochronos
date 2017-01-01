@@ -184,74 +184,82 @@ func (sh *ServiceHandler) applyTimetable(ctx context.Context, node *swarm.Node) 
 	sh.timetableMutex.RLock()
 	defer sh.timetableMutex.RUnlock()
 
-	// Get new state
-	now := time.Now().UTC()
-	newState, until := sh.Timetable.State(node.ID, now)
-	curState := timetable.State(docker.NodeGetServiceStateLabel(node, sh.ServiceName))
+	state, until := sh.Timetable.State(node.ID, time.Now().UTC())
+	sh.setState(ctx, node, state, until)
 
+	return nil
+}
+
+func (sh *ServiceHandler) setState(ctx context.Context, node *swarm.Node, state timetable.State, until time.Time) error {
+	now := time.Now().UTC()
+
+	curState := timetable.State(docker.NodeGetServiceStateLabel(node, sh.ServiceName))
 	if curState == "" {
 		curState = timetable.StateUndefined
 	}
-	log.Debugf("Current state: %s; New state: %s until %s", curState, newState, until)
+	log.Debugf("Current state: %s; New state: %s until %s", curState, state, until)
 
-	// If different: change it
-	if newState != curState {
-		if newState == model.StateActivated && until.Sub(now) < sh.MinDuration {
-			log.Debug("Skipping activation: phase is to short")
+	// If equal do nothing
+	if state == curState {
+		return nil
+	}
+
+	if state == model.StateActivated && until.Sub(now) < sh.MinDuration {
+		log.Debug("Skipping activation: phase is to short")
+		return nil
+	}
+
+	log.Debug("Setting service state label")
+	err := docker.NodeSetServiceStateLabel(ctx, node, sh.ServiceName, state)
+	if err != nil {
+		return err
+	}
+
+	// Apply appropriate actions to running containersx
+	log.Debug("Retrieving containers from node")
+	// TODO: This doesn't work with external Docker Engines
+	containers, err := docker.ContainerListNode(ctx, node.ID)
+	if err != nil {
+		return err
+	}
+
+	if state == model.StateActivated {
+		log.Debug("Writing container TTL")
+
+		errChan := forEachContainer(ctx, containers, func(ctx context.Context, container types.Container) error {
+			err2 := docker.ContainerWriteTTL(ctx, container.ID, until)
+			if err2 != nil {
+				return err2
+			}
 			return nil
-		}
+		})
 
-		log.Debug("Setting service state label")
-		err := docker.NodeSetServiceStateLabel(ctx, node, sh.ServiceName, newState)
+		for err := range errChan {
+			log.WithError(err).Warn("Writing container TTL failed")
+		}
+	} else {
+		// FIX: this should normally be done by Docker Swarm
+		log.Debug("Stopping and removing running containers")
+
+		// Get stop grace period
+		var timeout *time.Duration
+		srv, _, err := docker.StdClient.ServiceInspectWithRaw(ctx, sh.ServiceName)
 		if err != nil {
-			return err
-		}
-
-		// Apply appropriate actions to running containers
-		log.Debug("Retrieving containers from node")
-		containers, err := docker.ContainerListNode(ctx, node.ID)
-		if err != nil {
-			return err
-		}
-
-		if newState == model.StateActivated {
-			log.Debug("Writing container TTL")
-
-			errChan := forEachContainer(ctx, containers, func(ctx context.Context, container types.Container) error {
-				err2 := docker.ContainerWriteTTL(ctx, container.ID, until)
-				if err2 != nil {
-					return err2
-				}
-				return nil
-			})
-
-			for err := range errChan {
-				log.WithError(err).Warn("Writing container TTL failed")
-			}
+			log.WithError(err).Warn("Failed to get stop grace period of service")
 		} else {
-			// FIX: this should normally be done by Docker Swarm
-			log.Debug("Stopping and removing running containers")
+			timeout = srv.Spec.TaskTemplate.ContainerSpec.StopGracePeriod
+		}
 
-			// Get stop grace period
-			var timeout *time.Duration
-			srv, _, err := docker.StdClient.ServiceInspectWithRaw(ctx, sh.ServiceName)
-			if err != nil {
-				log.WithError(err).Warn("Failed to get stop grace period of service")
-			} else {
-				timeout = srv.Spec.TaskTemplate.ContainerSpec.StopGracePeriod
+		errChan := forEachContainer(ctx, containers, func(ctx context.Context, container types.Container) error {
+			err2 := docker.ContainerStopAndRemoveGracefully(ctx, container.ID, timeout)
+			if err2 != nil {
+				return err2
 			}
+			return nil
+		})
 
-			errChan := forEachContainer(ctx, containers, func(ctx context.Context, container types.Container) error {
-				err2 := docker.ContainerStopAndRemoveGracefully(ctx, container.ID, timeout)
-				if err2 != nil {
-					return err2
-				}
-				return nil
-			})
-
-			for err := range errChan {
-				log.WithError(err).Warn("Stopping and removing running containers failed")
-			}
+		for err := range errChan {
+			log.WithError(err).Warn("Stopping and removing running containers failed")
 		}
 	}
 
