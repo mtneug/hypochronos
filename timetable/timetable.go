@@ -61,9 +61,41 @@ type Timetable struct {
 	idSortedEntriesMap map[string][]Entry
 }
 
+// Entry of a timetable.
 type Entry struct {
 	StartsAt time.Time
 	State    State
+}
+
+// SortedEntries of a timetable.
+type SortedEntries []Entry
+
+func (e SortedEntries) Since(t time.Time) SortedEntries {
+	i := binarySearch(e, t, 0, len(e)-1)
+
+	if i == -1 {
+		return e
+	}
+
+	if e[i].StartsAt.Equal(t) {
+		return e[i:]
+	}
+
+	if i+1 < len(e) {
+		return e[i+1:]
+	}
+
+	return make([]Entry, 0, 0)
+}
+
+func (e SortedEntries) Until(t time.Time) SortedEntries {
+	i := binarySearch(e, t, 0, len(e)-1)
+
+	if i == -1 {
+		return make([]Entry, 0, 0)
+	}
+
+	return e[:i]
 }
 
 type byTime []Entry
@@ -85,6 +117,17 @@ var (
 	// MaxTime that can be un/marshaled.
 	MaxTime = time.Date(9999, time.December, 31, 23, 59, 59, 999999999, time.UTC)
 )
+
+func (tt *Timetable) Entries(id string) SortedEntries {
+	eOrig, ok := tt.idSortedEntriesMap[id]
+	if !ok {
+		return make([]Entry, 0, 0)
+	}
+
+	e := make([]Entry, len(eOrig))
+	copy(e, eOrig)
+	return e
+}
 
 // State of the resource at given time.
 func (tt *Timetable) State(id string, t time.Time) (state State, until time.Time) {
