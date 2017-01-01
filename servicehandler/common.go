@@ -32,6 +32,7 @@ import (
 func (sh *ServiceHandler) WithPeriod(ctx context.Context) (context.Context, context.CancelFunc) {
 	sh.timetableMutex.RLock()
 	defer sh.timetableMutex.RUnlock()
+
 	return context.WithDeadline(ctx, sh.Timetable.FilledAt.Add(sh.Period))
 }
 
@@ -46,11 +47,12 @@ func forEachKeyNodePair(ctx context.Context, nm map[string]swarm.Node,
 
 		wg.Add(1)
 		go func() {
+			defer wg.Done()
+
 			err := op(ctx, key, node)
 			if err != nil {
 				errChan <- err
 			}
-			wg.Done()
 		}()
 	}
 
@@ -73,11 +75,12 @@ func forEachContainer(ctx context.Context, containers []types.Container,
 
 		wg.Add(1)
 		go func() {
+			defer wg.Done()
+
 			err := op(ctx, container)
 			if err != nil {
 				errChan <- err
 			}
-			wg.Done()
 		}()
 	}
 

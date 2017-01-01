@@ -84,6 +84,8 @@ func jsonFiller(tt *Timetable) error {
 		wg.Add(1)
 
 		go func() {
+			defer wg.Done()
+
 			// Create entries
 			entries := make([]Entry, 0, len(timeStateMap))
 			for t, s := range timeStateMap {
@@ -103,7 +105,6 @@ func jsonFiller(tt *Timetable) error {
 
 			// Store entries
 			tt.idSortedEntriesMap[id] = entries
-			wg.Done()
 		}()
 	}
 	wg.Wait()
