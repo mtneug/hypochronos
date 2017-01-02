@@ -73,6 +73,10 @@ clean:
 	@echo "⌛ $@"
 	@rm -f bin
 
+generate:
+	@echo "⌛ $@"
+	@go generate -v -x ${PKGS}
+
 lint:
 	@echo "⌛ $@"
 	@test -z "$$(gometalinter --deadline=10s ${GOMETALINTER_COMMON_ARGS} ./... | grep -v '.pb.go:' | tee /dev/stderr)"
@@ -112,4 +116,4 @@ coverage-integration:
 
 FORCE:
 
-.PHONY: all ci build install clean lint lint-full test integration coverage coverage-integration FORCE
+.PHONY: all ci build clean generate lint lint-full test integration coverage coverage-integration FORCE
