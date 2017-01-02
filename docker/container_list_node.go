@@ -21,6 +21,9 @@ import (
 	"github.com/docker/docker/api/types/filters"
 )
 
+// ContainerListNode lists all container running on given node.
+// FIX: this is actually not possible with the Docker API
+// TODO: add filter for service
 func ContainerListNode(ctx context.Context, nodeID string) ([]types.Container, error) {
 	args := filters.NewArgs()
 	args.Add("label", dockerSwarmNodeIDLabel+"="+nodeID)

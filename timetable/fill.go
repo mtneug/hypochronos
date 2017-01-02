@@ -23,7 +23,10 @@ import (
 	"time"
 )
 
+// Fill error values
 var (
+	// ErrUnknownType indicates that filling failed because the timetable type is
+	// unknown.
 	ErrUnknownType = errors.New("timetable: unknown type")
 )
 
@@ -37,18 +40,22 @@ func Fill(tt *Timetable) error {
 	return ErrUnknownType
 }
 
+// API holds values of every API object.
 type API struct {
 	APIVersion string `json:"apiVersion"`
 }
 
+// Metadata of API objects.
 type Metadata struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
+// JSONFillerSpec API object for JSONFillerResponse.
 type JSONFillerSpec struct {
 	Timetable map[string]map[time.Time]State `json:"createdAt"`
 }
 
+// JSONFillerResponse API object.
 type JSONFillerResponse struct {
 	API
 	Metadata Metadata       `json:"metadata"`
@@ -61,7 +68,7 @@ func jsonFiller(tt *Timetable) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Decode
 	var rawTt JSONFillerResponse

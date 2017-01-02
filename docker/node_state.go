@@ -26,10 +26,14 @@ func labelState(srvName string) string {
 	return fmt.Sprintf(hypochronosStateLabelPattern, srvName)
 }
 
+// NodeGetServiceStateLabel extracts the value of the status label on given node
+// for given service.
 func NodeGetServiceStateLabel(node *swarm.Node, srvName string) string {
 	return node.Spec.Labels[labelState(srvName)]
 }
 
+// NodeSetServiceStateLabel writes a value to the status label on given node for
+// given service.
 func NodeSetServiceStateLabel(ctx context.Context, node *swarm.Node, srvName string, state timetable.State) error {
 	if node.Spec.Labels == nil {
 		node.Spec.Labels = make(map[string]string)
@@ -50,6 +54,8 @@ func NodeSetServiceStateLabel(ctx context.Context, node *swarm.Node, srvName str
 	return nil
 }
 
+// NodeDeleteServiceStateLabel removes the status label on given node for given
+// service.
 func NodeDeleteServiceStateLabel(ctx context.Context, node *swarm.Node, srvName string) error {
 	if node.Spec.Labels == nil {
 		return nil

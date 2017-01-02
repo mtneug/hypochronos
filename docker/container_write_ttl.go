@@ -25,6 +25,7 @@ import (
 	"github.com/mtneug/hypochronos/model"
 )
 
+// ContainerWriteTTL writes a TTL file to given container.
 func ContainerWriteTTL(ctx context.Context, containerID string, until time.Time) error {
 	resp := model.TTLResponse{
 		API:      model.API{APIVersion: "1"},

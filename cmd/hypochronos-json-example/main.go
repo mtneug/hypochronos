@@ -49,7 +49,7 @@ func ttHandler(w http.ResponseWriter, r *http.Request) {
 			Metadata: timetable.Metadata{CreatedAt: now},
 			Spec: timetable.JSONFillerSpec{
 				Timetable: map[string]map[time.Time]timetable.State{
-					nodeID: map[time.Time]timetable.State{
+					nodeID: {
 						now.Add(-15 * time.Second): model.StateActivated,
 						now.Add(+15 * time.Second): model.StateDeactivated,
 						now.Add(+45 * time.Second): model.StateActivated,
@@ -67,6 +67,6 @@ func ttHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write(jsonResp)
+	_, _ = w.Write(jsonResp)
 	log.Print("GET /tt.json")
 }

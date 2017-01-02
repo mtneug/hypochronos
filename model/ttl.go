@@ -16,12 +16,15 @@ package model
 
 import "time"
 
+// TTLFilePath to write the TTL file to.
 const TTLFilePath = "/etc/container-ttl"
 
+// TTLData API object used in TTLResponse.
 type TTLData struct {
 	TTL time.Time `json:"ttl"`
 }
 
+// TTLResponse API object.
 type TTLResponse struct {
 	API
 	Metadata Metadata `json:"metadata"`

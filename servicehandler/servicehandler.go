@@ -185,12 +185,11 @@ func (sh *ServiceHandler) applyTimetable(ctx context.Context, node *swarm.Node) 
 	defer sh.timetableMutex.RUnlock()
 
 	state, until := sh.Timetable.State(node.ID, time.Now().UTC())
-	sh.setState(ctx, node, state, until)
-
-	return nil
+	return sh.setState(ctx, node, state, until)
 }
 
-func (sh *ServiceHandler) setState(ctx context.Context, node *swarm.Node, state timetable.State, until time.Time) error {
+func (sh *ServiceHandler) setState(ctx context.Context, node *swarm.Node, state timetable.State,
+	until time.Time) error {
 	now := time.Now().UTC()
 
 	curState := timetable.State(docker.NodeGetServiceStateLabel(node, sh.ServiceName))

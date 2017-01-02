@@ -80,6 +80,7 @@ func (e SortedEntries) Since(t time.Time) SortedEntries {
 	return make([]Entry, 0, 0)
 }
 
+// Until filters for entries starting before given time.
 func (e SortedEntries) Until(t time.Time) SortedEntries {
 	i := binarySearch(e, t, 0, len(e)-1)
 

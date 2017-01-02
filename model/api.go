@@ -16,10 +16,12 @@ package model
 
 import "time"
 
+// API holds common values to all API objects.
 type API struct {
 	APIVersion string `json:"apiVersion"`
 }
 
+// Metadata of an API object.
 type Metadata struct {
 	CreatedAt time.Time `json:"createdAt"`
 }

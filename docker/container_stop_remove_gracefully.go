@@ -21,6 +21,8 @@ import (
 	"github.com/docker/docker/api/types"
 )
 
+// ContainerStopAndRemoveGracefully stops given container gracefully and removes
+// it afterwards.
 func ContainerStopAndRemoveGracefully(ctx context.Context, containerID string, timeout *time.Duration) error {
 	err := StdClient.ContainerStop(ctx, containerID, timeout)
 	if err != nil {
