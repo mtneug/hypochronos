@@ -19,9 +19,8 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/api/types/swarm"
+	"github.com/mtneug/hypochronos/api"
 	"github.com/mtneug/hypochronos/label"
-	"github.com/mtneug/hypochronos/model"
-	"github.com/mtneug/hypochronos/pkg/event"
 	"github.com/mtneug/hypochronos/servicehandler"
 	"github.com/mtneug/hypochronos/timetable"
 )
@@ -36,10 +35,9 @@ func (c *Controller) runEventLoop(ctx context.Context, stopChan <-chan struct{})
 	for {
 		select {
 		case e := <-eventQueue:
-			if model.IsServiceEvent(e) {
-				log.Debugf("Received %s event", e.Type)
-				serviceID := e.Object.(string)
-				c.handleServiceEvent(ctx, e, serviceID)
+			if e.ActorType == api.EventActorType_service {
+				log.Debugf("Received %s_%s event", e.ActorType.String(), e.Action.String())
+				c.handleServiceEvent(ctx, e)
 			}
 		case <-stopChan:
 			return nil
@@ -49,43 +47,25 @@ func (c *Controller) runEventLoop(ctx context.Context, stopChan <-chan struct{})
 	}
 }
 
-func (c *Controller) handleServiceEvent(ctx context.Context, e event.Event, serviceID string) {
-	switch e.Type {
-	case model.EventTypeServiceCreated:
-		c.ServicesMap.Write(func(services map[string]swarm.Service) {
-			changed, err := c.addServiceHandler(ctx, services[serviceID])
-			if err != nil {
-				log.WithError(err).Error("Could not add service handler")
-				return
-			} else if changed {
-				log.Info("Service handler added")
-			}
-		})
-
-	case model.EventTypeServiceUpdated:
-		c.ServicesMap.Write(func(services map[string]swarm.Service) {
-			changed, err := c.updateServiceHandler(ctx, services[serviceID])
-			if err != nil {
-				log.WithError(err).Error("Could not update service handler")
-				return
-			} else if changed {
-				log.Info("Service handler updated")
-			}
-		})
-
-	case model.EventTypeServiceDeleted:
-		c.ServicesMap.Write(func(services map[string]swarm.Service) {
-			changed, err := c.deleteServiceHandler(ctx, serviceID)
-			if err != nil {
-				log.WithError(err).Error("Could not delete service handler")
-				return
-			} else if changed {
-				log.Info("Service handler deleted")
-			}
-
-			delete(services, serviceID)
-		})
+func (c *Controller) handleServiceEvent(ctx context.Context, e api.Event) {
+	var f func(swarm.Service) (bool, error)
+	switch e.Action {
+	case api.EventAction_created:
+		f = func(s swarm.Service) (bool, error) { return c.addServiceHandler(ctx, s) }
+	case api.EventAction_updated:
+		f = func(s swarm.Service) (bool, error) { return c.updateServiceHandler(ctx, s) }
+	case api.EventAction_deleted:
+		f = func(swarm.Service) (bool, error) { return c.deleteServiceHandler(ctx, e.ActorID) }
 	}
+
+	c.ServicesMap.Write(func(services map[string]swarm.Service) {
+		changed, err := f(services[e.ActorID])
+		if err != nil {
+			log.WithError(err).Error("Handling service event failed")
+		} else if changed {
+			log.Infof("Service handler %s", e.Action.String())
+		}
+	})
 }
 
 func (c *Controller) addServiceHandler(ctx context.Context, srv swarm.Service) (bool, error) {

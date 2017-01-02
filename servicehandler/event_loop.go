@@ -21,8 +21,8 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/api/types/events"
 	"github.com/docker/docker/api/types/swarm"
+	"github.com/mtneug/hypochronos/api"
 	"github.com/mtneug/hypochronos/docker"
-	"github.com/mtneug/hypochronos/model"
 )
 
 func (sh *ServiceHandler) runEventLoop(ctx context.Context, stopChan <-chan struct{}) error {
@@ -37,13 +37,14 @@ func (sh *ServiceHandler) runEventLoop(ctx context.Context, stopChan <-chan stru
 	for {
 		select {
 		case e := <-eventQueue:
-			if e.Type == model.EventTypeNodeCreated || e.Type == model.EventTypeNodeUpdated {
-				log.Debugf("Received %s event", e.Type)
+			if e.ActorType == api.EventActorType_node &&
+				(e.Action == api.EventAction_created || e.Action == api.EventAction_updated) {
+				log.Debugf("Received %s_%s event", e.ActorType.String(), e.Action.String())
+
 				ctx2, cancel2 := sh.WithPeriod(ctx)
 
 				sh.NodesMap.Write(func(nodes map[string]swarm.Node) {
-					nodeID := e.Object.(string)
-					node := nodes[nodeID]
+					node := nodes[e.ActorID]
 
 					err := sh.applyTimetable(ctx2, &node)
 					if err != nil {
@@ -51,7 +52,7 @@ func (sh *ServiceHandler) runEventLoop(ctx context.Context, stopChan <-chan stru
 						return
 					}
 
-					nodes[nodeID] = node
+					nodes[e.ActorID] = node
 				})
 
 				cancel2()

@@ -19,7 +19,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/mtneug/hypochronos/pkg/event"
+	"github.com/mtneug/hypochronos/event"
 	"github.com/mtneug/hypochronos/store"
 	"github.com/mtneug/pkg/startstopper"
 )

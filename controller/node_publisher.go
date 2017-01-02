@@ -6,7 +6,7 @@
 //
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
-// Uless required by applicable law or agreed to in writing, software
+// Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
@@ -19,22 +19,21 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	dockerTypes "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
+	"github.com/mtneug/hypochronos/api"
 	"github.com/mtneug/hypochronos/docker"
-	"github.com/mtneug/hypochronos/model"
-	"github.com/mtneug/hypochronos/pkg/event"
+	"github.com/mtneug/hypochronos/event"
 )
 
 func (c *Controller) runNodeEventsPublisher(ctx context.Context, stopChan <-chan struct{}) error {
 	log.Debug("Node event publisher started")
 	defer log.Debug("Node event publisher stopped")
 
-	eventQueue := c.EventManager.Pub()
 	seen := make(map[string]bool)
 
 	tick := func() {
-		nodes, err := docker.StdClient.NodeList(ctx, dockerTypes.NodeListOptions{})
+		nodes, err := docker.StdClient.NodeList(ctx, types.NodeListOptions{})
 		if err != nil {
 			log.WithError(err).Error("Failed to get list of nodes")
 			return
@@ -48,12 +47,16 @@ func (c *Controller) runNodeEventsPublisher(ctx context.Context, stopChan <-chan
 					// Add
 					nodes[node.ID] = node
 					log.Info("Node added")
-					eventQueue <- event.New(model.EventTypeNodeCreated, node.ID)
+
+					n := api.Node{ID: node.ID, Labels: node.Spec.Labels}
+					c.EventManager.Pub() <- event.New(api.EventAction_created, n)
 				} else if n.Version.Index < node.Version.Index {
 					// Update
 					nodes[node.ID] = node
 					log.Info("Node updated")
-					eventQueue <- event.New(model.EventTypeNodeUpdated, node.ID)
+
+					n := api.Node{ID: node.ID, Labels: node.Spec.Labels}
+					c.EventManager.Pub() <- event.New(api.EventAction_updated, n)
 				}
 			})
 		}
@@ -61,9 +64,12 @@ func (c *Controller) runNodeEventsPublisher(ctx context.Context, stopChan <-chan
 		c.NodesMap.Write(func(nodes map[string]swarm.Node) {
 			for id, node := range nodes {
 				if !seen[id] {
+					// Delete
 					delete(nodes, node.ID)
 					log.Info("Node deleted")
-					eventQueue <- event.New(model.EventTypeNodeDeleted, node.ID)
+
+					n := api.Node{ID: node.ID, Labels: node.Spec.Labels}
+					c.EventManager.Pub() <- event.New(api.EventAction_deleted, n)
 				}
 				delete(seen, id)
 			}

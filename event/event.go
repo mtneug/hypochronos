@@ -14,26 +14,34 @@
 
 package event
 
-import "github.com/mtneug/pkg/ulid"
+import (
+	"github.com/mtneug/hypochronos/api"
+	"github.com/mtneug/pkg/ulid"
+)
 
 // Type represents some category of events.
 type Type string
 
-// Event represents some incident.
-type Event struct {
-	// ID of the event.
-	ID string
-	// Type of the event.
-	Type Type
-	// Object relevant to the event.
-	Object interface{}
-}
-
 // New creates a new event.
-func New(t Type, o interface{}) Event {
-	return Event{
+func New(a api.EventAction, actor interface{}) api.Event {
+	e := api.Event{
 		ID:     ulid.New().String(),
-		Type:   t,
-		Object: o,
+		Action: a,
 	}
+
+	switch a := actor.(type) {
+	case api.Node:
+		e.Actor = &api.Event_Node{Node: &a}
+		e.ActorID = a.ID
+		e.ActorType = api.EventActorType_node
+	case api.Service:
+		e.Actor = &api.Event_Service{Service: &a}
+		e.ActorID = a.ID
+		e.ActorType = api.EventActorType_service
+	case api.State:
+		e.Actor = &api.Event_State{State: a}
+		e.ActorType = api.EventActorType_state
+	}
+
+	return e
 }

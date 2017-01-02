@@ -19,22 +19,21 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	dockerTypes "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
+	"github.com/mtneug/hypochronos/api"
 	"github.com/mtneug/hypochronos/docker"
-	"github.com/mtneug/hypochronos/model"
-	"github.com/mtneug/hypochronos/pkg/event"
+	"github.com/mtneug/hypochronos/event"
 )
 
 func (c *Controller) runServiceEventsPublisher(ctx context.Context, stopChan <-chan struct{}) error {
 	log.Debug("Service event publisher started")
 	defer log.Debug("Service event publisher stopped")
 
-	eventQueue := c.EventManager.Pub()
 	seen := make(map[string]bool)
 
 	tick := func() {
-		services, err := docker.StdClient.ServiceList(ctx, dockerTypes.ServiceListOptions{})
+		services, err := docker.StdClient.ServiceList(ctx, types.ServiceListOptions{})
 		if err != nil {
 			log.WithError(err).Error("Failed to get list of services")
 			return
@@ -48,12 +47,16 @@ func (c *Controller) runServiceEventsPublisher(ctx context.Context, stopChan <-c
 					// Add
 					services[srv.ID] = srv
 					log.Info("Service added")
-					eventQueue <- event.New(model.EventTypeServiceCreated, srv.ID)
+
+					s := api.Service{ID: srv.ID, Labels: srv.Spec.Labels}
+					c.EventManager.Pub() <- event.New(api.EventAction_created, s)
 				} else if n.Version.Index < srv.Version.Index {
 					// Update
 					services[srv.ID] = srv
 					log.Info("Service updated")
-					eventQueue <- event.New(model.EventTypeServiceUpdated, srv.ID)
+
+					s := api.Service{ID: srv.ID, Labels: srv.Spec.Labels}
+					c.EventManager.Pub() <- event.New(api.EventAction_updated, s)
 				}
 			})
 		}
@@ -63,8 +66,10 @@ func (c *Controller) runServiceEventsPublisher(ctx context.Context, stopChan <-c
 				if !seen[id] {
 					// Delete
 					delete(services, srv.ID)
-					log.Info("Service updated")
-					eventQueue <- event.New(model.EventTypeServiceDeleted, srv.ID)
+					log.Info("Service deleted")
+
+					s := api.Service{ID: srv.ID, Labels: srv.Spec.Labels}
+					c.EventManager.Pub() <- event.New(api.EventAction_deleted, s)
 				}
 				delete(seen, id)
 			}

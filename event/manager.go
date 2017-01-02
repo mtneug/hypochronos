@@ -18,6 +18,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/mtneug/hypochronos/api"
 	"github.com/mtneug/pkg/startstopper"
 	"github.com/mtneug/pkg/ulid"
 )
@@ -28,10 +29,10 @@ type Manager interface {
 
 	// Sub returns a read-only channel for subscribing to events. Calling the
 	// returned function will unsubscribe this channel.
-	Sub() (queue <-chan Event, unsub func())
+	Sub() (queue <-chan api.Event, unsub func())
 
 	// Pub returns a write-only channel for publishing events.
-	Pub() (queue chan<- Event)
+	Pub() (queue chan<- api.Event)
 }
 
 // ConcurrentManager manages events concurrently.
@@ -39,24 +40,24 @@ type ConcurrentManager struct {
 	startstopper.StartStopper
 
 	mutex sync.Mutex
-	subs  map[string]chan Event
-	queue chan Event
+	subs  map[string]chan api.Event
+	queue chan api.Event
 }
 
 // NewConcurrentManager creates a new ConcurrentManager with given queue size.
 func NewConcurrentManager(queueSize int) *ConcurrentManager {
 	em := &ConcurrentManager{
-		subs:  make(map[string]chan Event),
-		queue: make(chan Event, queueSize),
+		subs:  make(map[string]chan api.Event),
+		queue: make(chan api.Event, queueSize),
 	}
 	em.StartStopper = startstopper.NewGo(startstopper.RunnerFunc(em.run))
 	return em
 }
 
 // Sub to the event channel.
-func (em *ConcurrentManager) Sub() (<-chan Event, func()) {
+func (em *ConcurrentManager) Sub() (<-chan api.Event, func()) {
 	id := ulid.New().String()
-	sub := make(chan Event)
+	sub := make(chan api.Event)
 	unsub := func() {
 		em.mutex.Lock()
 		defer em.mutex.Unlock()
@@ -72,7 +73,7 @@ func (em *ConcurrentManager) Sub() (<-chan Event, func()) {
 }
 
 // Pub to the event channel.
-func (em *ConcurrentManager) Pub() chan<- Event {
+func (em *ConcurrentManager) Pub() chan<- api.Event {
 	return em.queue
 }
 
