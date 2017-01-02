@@ -14,8 +14,8 @@
 
 package main
 
-import "github.com/mtneug/hypochronos/cmd"
+import "github.com/mtneug/hypochronos/cmd/hypochronosd/cli"
 
 func main() {
-	cmd.Execute()
+	cli.Execute()
 }

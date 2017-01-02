@@ -12,5 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package cmd contains code for the command line interface.
-package cmd
+// Package cli contains code for the hypochronosd command line interface.
+package cli

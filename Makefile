@@ -16,6 +16,9 @@ GIT_COMMIT=$(shell git rev-parse --short HEAD || echo "unknown")
 GIT_TREE_STATE=$(shell sh -c 'if test -z "`git status --porcelain 2>/dev/null`"; then echo clean; else echo dirty; fi')
 BUILD_DATE=$(shell date -u +"%Y-%m-%d %T %Z")
 
+CMD=hypochronosd hypochronos-json-example
+BIN=$(addprefix bin/, $(CMD))
+
 PKG=$(shell cat .godir)
 PKG_INTEGRATION=${PKG}/integration
 PKGS=$(shell go list ./... | grep -v /vendor/)
@@ -49,17 +52,16 @@ GOMETALINTER_COMMON_ARGS=\
 all: lint build test integration
 ci: lint-full build coverage coverage-integration
 
-build:
+build: $(BIN)
 	@echo "⌛ $@"
-	@go build $(GO_BUILD_ARGS) -o bin/hypochronos $(PKG)
 
-install:
+bin/%: cmd/% FORCE
 	@echo "⌛ $@"
-	@go install $(GO_BUILD_ARGS) $(PKG)
+	@go build $(GO_BUILD_ARGS) -o $@ ./$<
 
-run: build
+run: bin/hypochronosd
 	@echo "⌛ $@"
-	@bin/hypochronos \
+	@bin/hypochronosd \
 		--log-level debug \
 		--service-update-period 1s \
 		--node-update-period 1s \
@@ -107,4 +109,6 @@ coverage-integration:
 	@echo "⌛ $@"
 	@go test -race -coverprofile="../../../${PKG_INTEGRATION}/coverage.txt" -covermode=atomic ${PKG_INTEGRATION}
 
-.PHONY: all ci build install clean lint lint-full test integration coverage coverage-integration
+FORCE:
+
+.PHONY: all ci build install clean lint lint-full test integration coverage coverage-integration FORCE
