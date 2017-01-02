@@ -29,6 +29,11 @@ func (sh *ServiceHandler) runPeriodLoop(ctx context.Context, stopChan <-chan str
 
 	var periodCtx context.Context
 	var cancelPeriodCtx context.CancelFunc
+	defer func() {
+		if cancelPeriodCtx != nil {
+			cancelPeriodCtx()
+		}
+	}()
 
 	tick := func() {
 		// Cancel last period
@@ -91,6 +96,12 @@ func (sh *ServiceHandler) runPeriodLoop(ctx context.Context, stopChan <-chan str
 						go func() {
 							log.Debugf("State change to '%s' scheduled for %s until %s", entry.State, entry.StartsAt, until)
 							time.Sleep(entry.StartsAt.Sub(now))
+
+							select {
+							case <-ctx.Done():
+								return
+							default:
+							}
 
 							sh.NodesMap.Write(func(nodes map[string]swarm.Node) {
 								node := nodes[key]
