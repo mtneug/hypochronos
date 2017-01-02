@@ -24,11 +24,9 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/mtneug/hypochronos/api"
 	"github.com/mtneug/hypochronos/controller"
 	"github.com/mtneug/hypochronos/docker"
 	"github.com/mtneug/hypochronos/version"
-	"github.com/mtneug/pkg/startstopper"
 	"github.com/spf13/cobra"
 )
 
@@ -117,16 +115,10 @@ var rootCmd = &cobra.Command{
 			return err
 		}
 
-		// API server and Controller
-		server := api.New(addr)
-		ctrl := controller.New(nodePeriod, srvPeriod)
+		// Controller
+		ctrl := controller.New(addr, nodePeriod, srvPeriod)
 
-		group := startstopper.NewGroup([]startstopper.StartStopper{
-			server,
-			ctrl,
-		})
-
-		if err = group.Start(ctx); err != nil {
+		if err = ctrl.Start(ctx); err != nil {
 			return err
 		}
 
@@ -136,12 +128,12 @@ var rootCmd = &cobra.Command{
 		go func() {
 			<-sig
 			log.Info("Shutting down")
-			err = group.Stop(ctx)
+			err = ctrl.Stop(ctx)
 			log.WithError(err).Error("Shutting down failed")
 		}()
 
 		log.Info("Ready")
-		return group.Err(ctx)
+		return ctrl.Err(ctx)
 	},
 }
 

@@ -28,6 +28,8 @@ import (
 type Controller struct {
 	startstopper.StartStopper
 
+	Addr string
+
 	NodeUpdatePeriod    time.Duration
 	ServiceUpdatePeriod time.Duration
 
@@ -42,9 +44,9 @@ type Controller struct {
 }
 
 // New creates a new controller.
-func New(nodeUpdatePeriod, serviceUpdatePeriod time.Duration) *Controller {
-
+func New(addr string, nodeUpdatePeriod, serviceUpdatePeriod time.Duration) *Controller {
 	ctrl := &Controller{
+		Addr:                addr,
 		NodeUpdatePeriod:    nodeUpdatePeriod,
 		ServiceUpdatePeriod: serviceUpdatePeriod,
 		NodesMap:            store.NewNodesMap(),
