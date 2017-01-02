@@ -75,7 +75,7 @@ clean:
 
 lint:
 	@echo "⌛ $@"
-	@test -z "$$(gometalinter --deadline=5s ${GOMETALINTER_COMMON_ARGS} ./... | tee /dev/stderr)"
+	@test -z "$$(gometalinter --deadline=10s ${GOMETALINTER_COMMON_ARGS} ./... | grep -v '.pb.go:' | tee /dev/stderr)"
 
 lint-full:
 	@echo "⌛ $@"
@@ -85,8 +85,9 @@ lint-full:
 			--enable=structcheck \
 			--enable=errcheck \
 			--enable=unconvert \
-			./... | \
-		tee /dev/stderr)"
+			./... \
+		| grep -v '.pb.go:' \
+		| tee /dev/stderr)"
 
 test:
 	@echo "⌛ $@"
