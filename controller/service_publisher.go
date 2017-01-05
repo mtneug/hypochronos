@@ -20,11 +20,21 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/mtneug/hypochronos/api"
 	"github.com/mtneug/hypochronos/docker"
 	"github.com/mtneug/hypochronos/event"
+	"github.com/mtneug/hypochronos/label"
 )
+
+var serviceListOptions types.ServiceListOptions
+
+func init() {
+	f := filters.NewArgs()
+	f.Add("label", label.TimetableType)
+	serviceListOptions = types.ServiceListOptions{Filter: f}
+}
 
 func (c *Controller) runServiceEventsPublisher(ctx context.Context, stopChan <-chan struct{}) error {
 	log.Debug("Service event publisher started")
@@ -33,7 +43,7 @@ func (c *Controller) runServiceEventsPublisher(ctx context.Context, stopChan <-c
 	seen := make(map[string]bool)
 
 	tick := func() {
-		services, err := docker.StdClient.ServiceList(ctx, types.ServiceListOptions{})
+		services, err := docker.StdClient.ServiceList(ctx, serviceListOptions)
 		if err != nil {
 			log.WithError(err).Error("Failed to get list of services")
 			return
