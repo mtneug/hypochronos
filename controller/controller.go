@@ -28,8 +28,6 @@ import (
 type Controller struct {
 	startstopper.StartStopper
 
-	Addr string
-
 	NodeUpdatePeriod    time.Duration
 	ServiceUpdatePeriod time.Duration
 
@@ -44,15 +42,14 @@ type Controller struct {
 }
 
 // New creates a new controller.
-func New(addr string, nodeUpdatePeriod, serviceUpdatePeriod time.Duration) *Controller {
+func New(nodeUpdatePeriod, serviceUpdatePeriod time.Duration, eventManager event.Manager) *Controller {
 	ctrl := &Controller{
-		Addr:                addr,
 		NodeUpdatePeriod:    nodeUpdatePeriod,
 		ServiceUpdatePeriod: serviceUpdatePeriod,
 		NodesMap:            store.NewNodesMap(),
 		ServicesMap:         store.NewServicesMap(),
 		ServiceHandlerMap:   startstopper.NewInMemoryMap(),
-		EventManager:        event.NewConcurrentManager(20),
+		EventManager:        eventManager,
 	}
 
 	ctrl.StartStopper = startstopper.NewGo(startstopper.RunnerFunc(ctrl.run))
@@ -68,7 +65,6 @@ func (c *Controller) run(ctx context.Context, stopChan <-chan struct{}) error {
 	defer log.Debug("Controller stopped")
 
 	group := startstopper.NewGroup([]startstopper.StartStopper{
-		c.EventManager,
 		c.nodeEventsPublisher,
 		c.serviceEventsPublisher,
 		c.eventLoop,

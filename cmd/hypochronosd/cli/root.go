@@ -26,13 +26,15 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/mtneug/hypochronos/controller"
 	"github.com/mtneug/hypochronos/docker"
+	"github.com/mtneug/hypochronos/event"
 	"github.com/mtneug/hypochronos/version"
+	"github.com/mtneug/pkg/startstopper"
 	"github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{
-	Use:           "hypochronos",
-	Short:         "Temorary prevent Docker Swarm nodes from running a service",
+	Use:           "hypochronosd",
+	Short:         "Temorary prevent Docker Swarm nodes from running certain service",
 	SilenceErrors: true,
 	SilenceUsage:  true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -116,9 +118,17 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Controller
-		ctrl := controller.New(addr, nodePeriod, srvPeriod)
+		em := event.NewConcurrentManager(20)
+		ctrl := controller.New(nodePeriod, srvPeriod, em)
+		eventSrv := event.NewServer(addr, em)
 
-		if err = ctrl.Start(ctx); err != nil {
+		group := startstopper.NewGroup([]startstopper.StartStopper{
+			em,
+			ctrl,
+			eventSrv,
+		})
+
+		if err = group.Start(ctx); err != nil {
 			return err
 		}
 
@@ -128,12 +138,12 @@ var rootCmd = &cobra.Command{
 		go func() {
 			<-sig
 			log.Info("Shutting down")
-			err = ctrl.Stop(ctx)
+			err = group.Stop(ctx)
 			log.WithError(err).Error("Shutting down failed")
 		}()
 
 		log.Info("Ready")
-		return ctrl.Err(ctx)
+		return group.Err(ctx)
 	},
 }
 
