@@ -39,7 +39,7 @@ func New(a api.EventAction, actor interface{}) api.Event {
 		e.ActorID = a.ID
 		e.ActorType = api.EventActorType_service
 	case api.State:
-		e.Actor = &api.Event_State{State: a}
+		e.Actor = &api.Event_State{State: &a}
 		e.ActorType = api.EventActorType_state
 	}
 

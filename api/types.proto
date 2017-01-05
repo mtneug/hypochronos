@@ -21,26 +21,26 @@ message Filters {
   map<int32, string> Args = 1;
 }
 
-enum FilterKey {
-  NodeID = 0;
-  // TODO: add more
-}
-
 message Node {
   // TODO: rename fields with plugin
   string ID = 1;
-  map<string, string> Labels = 2;
 }
 
 message Service {
   string ID = 1;
   string Name = 2;
-  map<string, string> Labels = 3;
 }
 
-enum State {
-  Activated = 0;
-  Deactivated = 1;
+message State {
+  StateValue Value = 1;
+  Service Service = 2;
+  Node Node = 3;
+}
+
+enum StateValue {
+  Undefined = 0;
+  Activated = 1;
+  Deactivated = 2;
 }
 
 message Event {
@@ -65,4 +65,12 @@ enum EventAction {
   created = 0;
   updated = 1;
   deleted = 2;
+}
+
+enum EventFilterKey {
+  Action = 0;
+  ActorType = 1;
+  ActorID = 2;
+  NodeID = 3;
+  ServiceID = 4;
 }
