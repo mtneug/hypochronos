@@ -22,6 +22,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
+	"github.com/mtneug/hypochronos/api"
 	"github.com/mtneug/hypochronos/docker"
 	"github.com/mtneug/hypochronos/event"
 	"github.com/mtneug/hypochronos/model"
@@ -35,6 +36,7 @@ import (
 type ServiceHandler struct {
 	startstopper.StartStopper
 
+	ServiceID   string
 	ServiceName string
 	NodesMap    *store.NodesMap
 
@@ -50,8 +52,9 @@ type ServiceHandler struct {
 }
 
 // New creates a new ServiceHandler.
-func New(serviceName string, tt timetable.Timetable, em event.Manager, nm *store.NodesMap) *ServiceHandler {
+func New(serviceID, serviceName string, tt timetable.Timetable, em event.Manager, nm *store.NodesMap) *ServiceHandler {
 	sh := &ServiceHandler{
+		ServiceID:    serviceID,
 		ServiceName:  serviceName,
 		Timetable:    tt,
 		NodesMap:     nm,
@@ -214,53 +217,29 @@ func (sh *ServiceHandler) setState(ctx context.Context, node *swarm.Node, state 
 		return err
 	}
 
-	// Apply appropriate actions to running containersx
-	log.Debug("Retrieving containers from node")
-	// TODO: This doesn't work with external Docker Engines
-	containers, err := docker.ContainerListNode(ctx, node.ID)
-	if err != nil {
-		return err
+	// Sending out event
+	action := api.EventAction_updated
+	if curState == timetable.StateUndefined {
+		action = api.EventAction_created
 	}
 
-	if state == model.StateActivated {
-		log.Debug("Writing container TTL")
-
-		errChan := forEachContainer(ctx, containers, func(ctx context.Context, container types.Container) error {
-			err2 := docker.ContainerWriteTTL(ctx, container.ID, until)
-			if err2 != nil {
-				return err2
-			}
-			return nil
-		})
-
-		for err := range errChan {
-			log.WithError(err).Warn("Writing container TTL failed")
-		}
-	} else {
-		// FIX: this should normally be done by Docker Swarm
-		log.Debug("Stopping and removing running containers")
-
-		// Get stop grace period
-		var timeout *time.Duration
-		srv, _, err := docker.StdClient.ServiceInspectWithRaw(ctx, sh.ServiceName)
-		if err != nil {
-			log.WithError(err).Warn("Failed to get stop grace period of service")
-		} else {
-			timeout = srv.Spec.TaskTemplate.ContainerSpec.StopGracePeriod
-		}
-
-		errChan := forEachContainer(ctx, containers, func(ctx context.Context, container types.Container) error {
-			err2 := docker.ContainerStopAndRemoveGracefully(ctx, container.ID, timeout)
-			if err2 != nil {
-				return err2
-			}
-			return nil
-		})
-
-		for err := range errChan {
-			log.WithError(err).Warn("Stopping and removing running containers failed")
-		}
+	var value api.StateValue
+	switch state {
+	case timetable.StateUndefined:
+		value = api.StateValue_Undefined
+	case model.StateActivated:
+		value = api.StateValue_Activated
+	case model.StateDeactivated:
+		value = api.StateValue_Deactivated
 	}
+
+	s := api.State{
+		Value:   value,
+		Node:    &api.Node{ID: node.ID, Labels: node.Spec.Labels},
+		Service: &api.Service{ID: sh.ServiceID, Name: sh.ServiceName},
+	}
+
+	sh.EventManager.Pub() <- event.New(action, s)
 
 	return nil
 }
