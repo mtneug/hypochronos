@@ -76,6 +76,10 @@ run: bin/hypochronosd
 		--default-state deactivated \
 		--default-minimum-scheduling-duration 10s
 
+run-example: bin/hypochronos-json-example
+	@echo "⌛ $@"
+	@bin/hypochronos-json-example
+
 clean:
 	@echo "⌛ $@"
 	@rm -f bin
