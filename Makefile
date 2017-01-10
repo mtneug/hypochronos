@@ -59,6 +59,13 @@ bin/%: cmd/% FORCE
 	@echo "⌛ $@"
 	@go build $(GO_BUILD_ARGS) -o $@ ./$<
 
+install: $(addprefix install-, $(CMD))
+		@echo "⌛ $@"
+
+install-%: cmd/% FORCE
+	@echo "⌛ $@"
+	@go install $(GO_BUILD_ARGS) ./$<
+
 run: bin/hypochronosd
 	@echo "⌛ $@"
 	@bin/hypochronosd \
