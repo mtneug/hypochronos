@@ -58,14 +58,14 @@ func (c *Controller) runServiceEventsPublisher(ctx context.Context, stopChan <-c
 					services[srv.ID] = srv
 					log.Info("Service added")
 
-					s := api.Service{ID: srv.ID, Labels: srv.Spec.Labels}
+					s := api.Service{ID: srv.ID}
 					c.EventManager.Pub() <- event.New(api.EventAction_created, s)
 				} else if n.Version.Index < srv.Version.Index {
 					// Update
 					services[srv.ID] = srv
 					log.Info("Service updated")
 
-					s := api.Service{ID: srv.ID, Labels: srv.Spec.Labels}
+					s := api.Service{ID: srv.ID}
 					c.EventManager.Pub() <- event.New(api.EventAction_updated, s)
 				}
 			})
@@ -78,7 +78,7 @@ func (c *Controller) runServiceEventsPublisher(ctx context.Context, stopChan <-c
 					delete(services, srv.ID)
 					log.Info("Service deleted")
 
-					s := api.Service{ID: srv.ID, Labels: srv.Spec.Labels}
+					s := api.Service{ID: srv.ID}
 					c.EventManager.Pub() <- event.New(api.EventAction_deleted, s)
 				}
 				delete(seen, id)
