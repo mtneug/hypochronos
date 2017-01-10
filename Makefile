@@ -16,7 +16,7 @@ GIT_COMMIT=$(shell git rev-parse --short HEAD || echo "unknown")
 GIT_TREE_STATE=$(shell sh -c 'if test -z "`git status --porcelain 2>/dev/null`"; then echo clean; else echo dirty; fi')
 BUILD_DATE=$(shell date -u +"%Y-%m-%d %T %Z")
 
-CMD=hypochronosd hypochronos-json-example
+CMD=hypochronosd hypochronos-node-helper hypochronos-json-example
 BIN=$(addprefix bin/, $(CMD))
 
 PKG=$(shell cat .godir)
@@ -75,6 +75,12 @@ run: bin/hypochronosd
 		--default-period 1m \
 		--default-state deactivated \
 		--default-minimum-scheduling-duration 10s
+
+run-helper: bin/hypochronos-node-helper
+	@echo "⌛ $@"
+	@bin/hypochronos-node-helper \
+		--log-level debug \
+		--host localhost:8080
 
 run-example: bin/hypochronos-json-example
 	@echo "⌛ $@"
