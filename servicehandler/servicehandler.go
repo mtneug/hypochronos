@@ -20,7 +20,6 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/mtneug/hypochronos/api"
 	"github.com/mtneug/hypochronos/docker"
@@ -141,34 +140,6 @@ func forEachKeyNodePair(ctx context.Context, nm map[string]swarm.Node,
 			defer wg.Done()
 
 			err := op(ctx, key, node)
-			if err != nil {
-				errChan <- err
-			}
-		}()
-	}
-
-	go func() {
-		wg.Wait()
-		close(errChan)
-	}()
-
-	return errChan
-}
-
-func forEachContainer(ctx context.Context, containers []types.Container,
-	op func(ctx context.Context, container types.Container) error) (err <-chan error) {
-
-	var wg sync.WaitGroup
-	errChan := make(chan error)
-
-	for _, c := range containers {
-		container := c
-
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
-			err := op(ctx, container)
 			if err != nil {
 				errChan <- err
 			}
