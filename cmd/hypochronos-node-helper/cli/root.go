@@ -362,8 +362,8 @@ func handleDockerEvent(ctx context.Context, e events.Message) {
 	applyState(ctx, *state, c)
 }
 
-func applyState(ctx context.Context, state api.State, containers []types.Container) {
-	if len(containers) == 0 {
+func applyState(ctx context.Context, state api.State, cs []types.Container) {
+	if len(cs) == 0 {
 		log.Debug("No running containers")
 		return
 	}
@@ -372,9 +372,9 @@ func applyState(ctx context.Context, state api.State, containers []types.Contain
 	case api.StateValue_Activated:
 		log.Debug("Writing container TTL")
 
-		errChan := docker.ParallelForEachContainer(ctx, containers, func(ctx context.Context, container types.Container) error {
+		errChan := docker.ParallelForEachContainer(ctx, cs, func(ctx context.Context, c types.Container) error {
 			until := time.Unix(state.Until, 0).UTC()
-			err2 := docker.ContainerWriteTTL(ctx, container.ID, until)
+			err2 := docker.ContainerWriteTTL(ctx, c.ID, until)
 			if err2 != nil {
 				return err2
 			}
@@ -398,8 +398,8 @@ func applyState(ctx context.Context, state api.State, containers []types.Contain
 			timeout = srv.Spec.TaskTemplate.ContainerSpec.StopGracePeriod
 		}
 
-		errChan := docker.ParallelForEachContainer(ctx, containers, func(ctx context.Context, container types.Container) error {
-			err2 := docker.ContainerStopAndRemoveGracefully(ctx, container.ID, timeout)
+		errChan := docker.ParallelForEachContainer(ctx, cs, func(ctx context.Context, c types.Container) error {
+			err2 := docker.ContainerStopAndRemoveGracefully(ctx, c.ID, timeout)
 			if err2 != nil {
 				return err2
 			}
