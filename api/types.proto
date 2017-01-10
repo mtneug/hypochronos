@@ -33,8 +33,9 @@ message Service {
 
 message State {
   StateValue Value = 1;
-  Service Service = 2;
-  Node Node = 3;
+  int64 Until = 2;
+  Service Service = 3;
+  Node Node = 4;
 }
 
 enum StateValue {
