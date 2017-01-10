@@ -22,12 +22,12 @@ import (
 	"github.com/docker/docker/api/types/filters"
 )
 
-// EventsServiceContainerCreate creates a Docker events and error channel that
-// is filtered for container creation events of given service.
-func EventsServiceContainerCreate(ctx context.Context, serviceName string) (<-chan events.Message, <-chan error) {
+// EventsContainerCreate creates a Docker events and error channel that is
+// filtered for container creation events.
+func EventsContainerCreate(ctx context.Context) (<-chan events.Message, <-chan error) {
 	args := filters.NewArgs()
 	args.Add("type", events.ContainerEventType)
 	args.Add("event", "create")
-	args.Add("label", dockerSwarmServiceNameLabel+"="+serviceName)
+
 	return StdClient.Events(ctx, types.EventsOptions{Filters: args})
 }
