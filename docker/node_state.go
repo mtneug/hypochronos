@@ -23,7 +23,7 @@ import (
 )
 
 func labelState(srvName string) string {
-	return fmt.Sprintf(hypochronosStateLabelPattern, srvName)
+	return fmt.Sprintf(HypochronosStateLabelPattern, srvName)
 }
 
 // NodeGetServiceStateLabel extracts the value of the status label on given node

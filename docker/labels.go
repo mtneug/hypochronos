@@ -15,8 +15,10 @@
 package docker
 
 const (
-	dockerSwarmNodeIDLabel      = "com.docker.swarm.node.id"
-	dockerSwarmServiceNameLabel = "com.docker.swarm.service.name"
+	// DockerSwarmServiceIDLabel key.
+	DockerSwarmServiceIDLabel = "com.docker.swarm.service.id"
 
-	hypochronosStateLabelPattern = "de.mtneug.hypochronos.state.%s"
+	// HypochronosStateLabelPattern key pattern with placeholder for the service
+	// name.
+	HypochronosStateLabelPattern = "de.mtneug.hypochronos.state.%s"
 )
