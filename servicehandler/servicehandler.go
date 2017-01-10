@@ -96,6 +96,15 @@ func (sh *ServiceHandler) run(ctx context.Context, stopChan <-chan struct{}) err
 				return err
 			}
 			nodes[key] = node
+
+			s := api.State{
+				Value:   api.StateValue_Undefined,
+				Until:   timetable.MaxTime.Unix(),
+				Node:    &api.Node{ID: node.ID},
+				Service: &api.Service{ID: sh.ServiceID, Name: sh.ServiceName},
+			}
+			sh.EventManager.Pub() <- event.New(api.EventAction_deleted, s)
+
 			return nil
 		})
 
