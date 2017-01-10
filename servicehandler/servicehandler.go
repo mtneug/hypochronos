@@ -206,7 +206,8 @@ func (sh *ServiceHandler) setState(ctx context.Context, node *swarm.Node, state 
 
 	s := api.State{
 		Value:   value,
-		Node:    &api.Node{ID: node.ID, Labels: node.Spec.Labels},
+		Until:   until.Unix(),
+		Node:    &api.Node{ID: node.ID},
 		Service: &api.Service{ID: sh.ServiceID, Name: sh.ServiceName},
 	}
 
