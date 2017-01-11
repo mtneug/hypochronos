@@ -206,7 +206,7 @@ func hypochronosEvents(ctx context.Context) (<-chan api.Event, <-chan error) {
 	// event publisher
 	go func() {
 		// Formulate request
-		req := api.SubRequest{
+		req := api.EventsRequest{
 			Filters: &api.Filters{
 				Args: map[int32]string{
 					int32(api.EventFilterKey_NodeID):    nodeID,
@@ -231,12 +231,12 @@ func hypochronosEvents(ctx context.Context) (<-chan api.Event, <-chan error) {
 		}
 
 		// Create client
-		client := api.NewEventServiceClient(cc)
+		client := api.NewHypochronosClient(cc)
 
 		// Subscribe to events
-		var stream api.EventService_SubClient
+		var stream api.Hypochronos_EventsClient
 		for i := 0; i < subTries && !done(ctx); i++ {
-			stream, err = client.Sub(ctx, &req)
+			stream, err = client.Events(ctx, &req)
 			if err == nil {
 				break
 			}

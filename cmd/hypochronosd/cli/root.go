@@ -24,6 +24,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/mtneug/hypochronos/apiserver"
 	"github.com/mtneug/hypochronos/controller"
 	"github.com/mtneug/hypochronos/docker"
 	"github.com/mtneug/hypochronos/event"
@@ -120,12 +121,12 @@ var rootCmd = &cobra.Command{
 		// Controller
 		em := event.NewConcurrentManager(20)
 		ctrl := controller.New(nodePeriod, srvPeriod, em)
-		eventSrv := event.NewServer(addr, em)
+		srv := apiserver.New(addr, em)
 
 		group := startstopper.NewGroup([]startstopper.StartStopper{
 			em,
 			ctrl,
-			eventSrv,
+			srv,
 		})
 
 		if err = group.Start(ctx); err != nil {

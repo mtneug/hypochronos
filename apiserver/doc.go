@@ -12,20 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-syntax = "proto3";
-
-package api;
-
-import "types.proto";
-
-service Hypochronos {
-  rpc Events (EventsRequest) returns (stream EventsResponse);
-}
-
-message EventsRequest {
-  Filters Filters = 1;
-}
-
-message EventsResponse {
-  Event Event = 1;
-}
+// Package apiserver contains code that implements the hypochronosd API.
+package apiserver

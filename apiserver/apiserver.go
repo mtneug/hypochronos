@@ -12,30 +12,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package event
+package apiserver
 
 import (
 	"context"
 	"net"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
-
 	log "github.com/Sirupsen/logrus"
 	"github.com/mtneug/hypochronos/api"
+	"github.com/mtneug/hypochronos/event"
 	"github.com/mtneug/pkg/startstopper"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
-// Server implements a gRPC events server.
+// Server implements the hypochronos API.
 type Server struct {
 	startstopper.StartStopper
 
 	Addr         string
-	EventManager Manager
+	EventManager event.Manager
 }
 
-// NewServer creates a new gRPC events server.
-func NewServer(addr string, eventManager Manager) *Server {
+// New creates a new hypochronos API server.
+func New(addr string, eventManager event.Manager) *Server {
 	s := &Server{
 		Addr:         addr,
 		EventManager: eventManager,
@@ -46,8 +46,8 @@ func NewServer(addr string, eventManager Manager) *Server {
 }
 
 func (s *Server) run(ctx context.Context, stopChan <-chan struct{}) (err error) {
-	log.Debug("Event server started")
-	defer log.Debug("Event server stopped")
+	log.Debug("API server started")
+	defer log.Debug("API server stopped")
 
 	lis, err := net.Listen("tcp", s.Addr)
 	if err != nil {
@@ -56,7 +56,7 @@ func (s *Server) run(ctx context.Context, stopChan <-chan struct{}) (err error) 
 	defer func() { _ = lis.Close() }()
 
 	srv := grpc.NewServer()
-	api.RegisterEventServiceServer(srv, s)
+	api.RegisterHypochronosServer(srv, s)
 	reflection.Register(srv)
 
 	errChan := make(chan error)
@@ -72,32 +72,4 @@ func (s *Server) run(ctx context.Context, stopChan <-chan struct{}) (err error) 
 	srv.Stop()
 
 	return
-}
-
-// Sub implements the EventServiceServer interface.
-func (s *Server) Sub(req *api.SubRequest, stream api.EventService_SubServer) error {
-	log.Info("Client subscribed")
-	defer log.Info("Client unsubscribed")
-
-	eventQueue, unsub := s.EventManager.Sub()
-	defer unsub()
-
-	filters := api.Filters{}
-	if f := req.GetFilters(); f != nil {
-		filters = *f
-	}
-
-	for {
-		select {
-		case e := <-eventQueue:
-			if out := Filter(filters, e); !out {
-				err := stream.Send(&api.SubResponse{Event: &e})
-				if err != nil {
-					return err
-				}
-			}
-		case <-stream.Context().Done():
-			return stream.Context().Err()
-		}
-	}
 }
