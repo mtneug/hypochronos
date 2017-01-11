@@ -48,15 +48,13 @@ func (c *Controller) runNodeEventsPublisher(ctx context.Context, stopChan <-chan
 					nodes[node.ID] = node
 					log.Info("Node added")
 
-					n := api.Node{ID: node.ID}
-					c.EventManager.Pub() <- event.New(api.EventAction_created, n)
+					c.EventManager.Pub() <- event.New(api.EventAction_created, api.Node{ID: node.ID})
 				} else if n.Version.Index < node.Version.Index {
 					// Update
 					nodes[node.ID] = node
 					log.Info("Node updated")
 
-					n := api.Node{ID: node.ID}
-					c.EventManager.Pub() <- event.New(api.EventAction_updated, n)
+					c.EventManager.Pub() <- event.New(api.EventAction_updated, api.Node{ID: node.ID})
 				}
 			})
 		}
@@ -68,8 +66,7 @@ func (c *Controller) runNodeEventsPublisher(ctx context.Context, stopChan <-chan
 					delete(nodes, node.ID)
 					log.Info("Node deleted")
 
-					n := api.Node{ID: node.ID}
-					c.EventManager.Pub() <- event.New(api.EventAction_deleted, n)
+					c.EventManager.Pub() <- event.New(api.EventAction_deleted, api.Node{ID: node.ID})
 				}
 				delete(seen, id)
 			}
