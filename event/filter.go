@@ -21,25 +21,25 @@ func Filter(filters api.Filters, event api.Event) (out bool) {
 	args := filters.Args
 
 	// by action
-	a, ok := args[int32(api.EventFilterKey_Action)]
+	a, ok := args[int32(api.FilterKey_Action)]
 	if ok && a != event.Action.String() {
 		return true
 	}
 
 	// by actor type
-	t, ok := args[int32(api.EventFilterKey_ActorType)]
+	t, ok := args[int32(api.FilterKey_ActorType)]
 	if ok && t != event.ActorType.String() {
 		return true
 	}
 
 	// by actor ID
-	id, ok := args[int32(api.EventFilterKey_ActorID)]
+	id, ok := args[int32(api.FilterKey_ActorID)]
 	if ok && id != event.ActorID {
 		return true
 	}
 
 	// by node ID
-	nodeID, ok := args[int32(api.EventFilterKey_NodeID)]
+	nodeID, ok := args[int32(api.FilterKey_NodeID)]
 	if node := event.GetNode(); ok && node != nil {
 		if nodeID != node.ID {
 			return true
@@ -53,7 +53,7 @@ func Filter(filters api.Filters, event api.Event) (out bool) {
 	}
 
 	// by service ID
-	serviceID, ok := args[int32(api.EventFilterKey_ServiceID)]
+	serviceID, ok := args[int32(api.FilterKey_ServiceID)]
 	if service := event.GetService(); ok && service != nil {
 		if serviceID != service.ID {
 			return true

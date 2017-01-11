@@ -209,8 +209,8 @@ func hypochronosEvents(ctx context.Context) (<-chan api.Event, <-chan error) {
 		req := api.EventsRequest{
 			Filters: &api.Filters{
 				Args: map[int32]string{
-					int32(api.EventFilterKey_NodeID):    nodeID,
-					int32(api.EventFilterKey_ActorType): api.EventActorType_state.String(),
+					int32(api.FilterKey_NodeID):    nodeID,
+					int32(api.FilterKey_ActorType): api.EventActorType_state.String(),
 				},
 			},
 		}

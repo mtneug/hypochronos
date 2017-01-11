@@ -18,7 +18,16 @@ package api;
 
 message Filters {
   // Key value is from the FilterKey enum.
+  // TODO: change to string keys
   map<int32, string> Args = 1;
+}
+
+enum FilterKey {
+  Action = 0;
+  ActorType = 1;
+  ActorID = 2;
+  NodeID = 3;
+  ServiceID = 4;
 }
 
 message Node {
@@ -66,12 +75,4 @@ enum EventAction {
   created = 0;
   updated = 1;
   deleted = 2;
-}
-
-enum EventFilterKey {
-  Action = 0;
-  ActorType = 1;
-  ActorID = 2;
-  NodeID = 3;
-  ServiceID = 4;
 }
