@@ -18,8 +18,7 @@ package api;
 
 message Filters {
   // Key value is from the FilterKey enum.
-  // TODO: change to string keys
-  map<int32, string> Args = 1;
+  map<string, string> Args = 1;
 }
 
 enum FilterKey {
