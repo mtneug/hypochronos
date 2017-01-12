@@ -180,6 +180,7 @@ func eventLoop(ctx context.Context) error {
 			handleDockerEvent(ctx, e)
 
 		case <-hypochronosErr:
+			time.Sleep(waitTime)
 			hypochronosEvent, hypochronosErr = hypochronosEvents(ctx)
 		case <-dockerErr:
 			dockerEvent, dockerErr = docker.EventsContainerCreate(ctx)
@@ -192,21 +193,64 @@ func eventLoop(ctx context.Context) error {
 
 func hypochronosEvents(ctx context.Context) (<-chan api.Event, <-chan error) {
 	eventChan := make(chan api.Event, 20)
-	errChan := make(chan error, 1)
+	errChan := make(chan error, 2)
 	initChan = make(chan struct{})
+
+	// Create a new connection
+	cc, err := grpc.DialContext(ctx, host, grpc.WithInsecure())
+	if err != nil {
+		log.WithError(err).Error("Connection failed")
+		errChan <- err
+		return eventChan, errChan
+	}
+
+	// Create client
+	client := api.NewHypochronosClient(cc)
 
 	// init
 	go func() {
+		log.Debug("Initialize state")
+		defer log.Debug("Initialize state finished")
+
 		defer close(initChan)
 
-		// TODO: Add initialization for already running services.
 		serviceState = make(map[string]*api.State)
+
+		req := &api.StatesAtRequest{
+			Time:   time.Now().UTC().Unix(),
+			NodeID: nodeID,
+		}
+
+		resp, err2 := client.StatesAt(ctx, req)
+		if err2 != nil {
+			log.WithError(err2).Error("Initialize state failed")
+			errChan <- err2
+			return
+		}
+
+		for _, state := range resp.States {
+			err2 = validateState(state)
+			if err2 != nil {
+				log.WithError(err2).Warn("Invalid state; skipping")
+				continue
+			}
+
+			serviceState[state.Service.ID] = state
+			applyStateToRelevantContainer(ctx, *state)
+		}
 	}()
 
 	// event publisher
 	go func() {
+		defer func() {
+			if cc != nil {
+				<-initChan
+				_ = cc.Close()
+			}
+		}()
+
 		// Formulate request
-		req := api.EventsRequest{
+		req := &api.EventsRequest{
 			Filters: &api.Filters{
 				Args: map[string]string{
 					api.FilterKey_NodeID.String():    nodeID,
@@ -215,28 +259,10 @@ func hypochronosEvents(ctx context.Context) (<-chan api.Event, <-chan error) {
 			},
 		}
 
-		var cc *grpc.ClientConn
-		defer func() {
-			if cc != nil {
-				_ = cc.Close()
-			}
-		}()
-
-		// Create a new connection
-		cc, err := grpc.DialContext(ctx, host, grpc.WithInsecure())
-		if err != nil {
-			log.WithError(err).Error("Connection failed")
-			errChan <- err
-			return
-		}
-
-		// Create client
-		client := api.NewHypochronosClient(cc)
-
 		// Subscribe to events
 		var stream api.Hypochronos_EventsClient
 		for i := 0; i < subTries && !done(ctx); i++ {
-			stream, err = client.Events(ctx, &req)
+			stream, err = client.Events(ctx, req)
 			if err == nil {
 				break
 			}
@@ -273,32 +299,16 @@ func hypochronosEvents(ctx context.Context) (<-chan api.Event, <-chan error) {
 func handleHypochronosEvent(ctx context.Context, e api.Event) {
 	log.Debugf("Received %s_%s event", e.ActorType.String(), e.Action.String())
 
-	var (
-		node    *api.Node
-		service *api.Service
-	)
+	state := e.GetState()
 
 	// Can handle event?
-	var state *api.State
 	if e.ActorType != api.EventActorType_state {
-		log.Debug("Not a state event; skipping")
+		log.WithError(errors.New("helper: not a state event")).Warn("Invalid event; skipping")
 		return
 	}
-	if state = e.GetState(); state == nil {
-		log.Debug("No state given; skipping")
-		return
-	}
-	if node = state.Node; node == nil {
-		log.Debug("No node given; skipping")
-		return
-	}
-	if node.ID != nodeID {
-		log.Debug("Not current node; skipping")
-		return
-	}
-	if service = state.Service; service == nil {
-		log.Debug("No service given; skipping")
-		return
+	err := validateState(state)
+	if err != nil {
+		log.WithError(err).Warn("Invalid state; skipping")
 	}
 
 	switch e.Action {
@@ -306,15 +316,7 @@ func handleHypochronosEvent(ctx context.Context, e api.Event) {
 		fallthrough
 	case api.EventAction_updated:
 		serviceState[state.Service.ID] = state
-
-		log.Debug("Retrieving containers")
-		containers, err := docker.ContainerListService(ctx, state.Service.ID)
-		if err != nil {
-			log.WithError(err).Error("Retrieving containers failed")
-			return
-		}
-
-		applyState(ctx, *state, containers)
+		applyStateToRelevantContainer(ctx, *state)
 
 	case api.EventAction_deleted:
 		delete(serviceState, state.Service.ID)
@@ -362,6 +364,33 @@ func handleDockerEvent(ctx context.Context, e events.Message) {
 	applyState(ctx, *state, c)
 }
 
+func validateState(state *api.State) error {
+	if state == nil {
+		return errors.New("helper: no state given")
+	}
+	if state.Node == nil {
+		return errors.New("helper: no node given")
+	}
+	if state.Node.ID != nodeID {
+		return errors.New("helper: not current node")
+	}
+	if state.Service == nil {
+		return errors.New("helper: no service given")
+	}
+	return nil
+}
+
+func applyStateToRelevantContainer(ctx context.Context, state api.State) {
+	log.Debug("Retrieving containers")
+	containers, err := docker.ContainerListService(ctx, state.Service.ID)
+	if err != nil {
+		log.WithError(err).Error("Retrieving containers failed")
+		return
+	}
+
+	applyState(ctx, state, containers)
+}
+
 func applyState(ctx context.Context, state api.State, cs []types.Container) {
 	if len(cs) == 0 {
 		log.Debug("No running containers")
@@ -369,7 +398,7 @@ func applyState(ctx context.Context, state api.State, cs []types.Container) {
 	}
 
 	switch state.Value {
-	case api.StateValue_Activated:
+	case api.StateValue_activated.String():
 		log.Debug("Writing container TTL")
 
 		errChan := docker.ParallelForEachContainer(ctx, cs, func(ctx context.Context, c types.Container) error {
@@ -385,7 +414,7 @@ func applyState(ctx context.Context, state api.State, cs []types.Container) {
 			log.WithError(err).Warn("Writing container TTL failed")
 		}
 
-	case api.StateValue_Deactivated:
+	case api.StateValue_deactivated.String():
 		// NOTE: this should normally be done by Docker Swarm
 		log.Debug("Stopping and removing running containers")
 
