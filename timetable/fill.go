@@ -52,7 +52,7 @@ type Metadata struct {
 
 // JSONFillerSpec API object for JSONFillerResponse.
 type JSONFillerSpec struct {
-	Timetable map[string]map[time.Time]State `json:"createdAt"`
+	Timetable map[string]map[time.Time]string `json:"createdAt"`
 }
 
 // JSONFillerResponse API object.

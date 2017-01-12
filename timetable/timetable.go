@@ -20,14 +20,6 @@ import (
 	"github.com/mtneug/pkg/ulid"
 )
 
-// State of a resource.
-type State string
-
-const (
-	// StateUndefined indicates that the state of the resource is undefined.
-	StateUndefined State = "undefined"
-)
-
 // Type represents some category of timetables.
 type Type string
 
@@ -43,7 +35,7 @@ type Spec struct {
 	// JSONSpec for a hypochronos JSON timetable.
 	JSONSpec JSONSpec
 	// DefaultState if non is given.
-	DefaultState State
+	DefaultState string
 }
 
 // JSONSpec specifies a hypochronos JSON timetable.
@@ -55,7 +47,7 @@ type JSONSpec struct {
 // Entry of a timetable.
 type Entry struct {
 	StartsAt time.Time
-	State    State
+	State    string
 }
 
 // SortedEntries of a timetable.
@@ -134,7 +126,7 @@ func (tt *Timetable) Entries(id string) SortedEntries {
 }
 
 // State of the resource at given time.
-func (tt *Timetable) State(id string, t time.Time) (state State, until time.Time) {
+func (tt *Timetable) State(id string, t time.Time) (state string, until time.Time) {
 	entries, ok := tt.idSortedEntriesMap[id]
 	if !ok {
 		return tt.Spec.DefaultState, MaxTime

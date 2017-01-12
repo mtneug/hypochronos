@@ -19,7 +19,6 @@ import (
 	"fmt"
 
 	"github.com/docker/docker/api/types/swarm"
-	"github.com/mtneug/hypochronos/timetable"
 )
 
 func labelState(srvName string) string {
@@ -34,11 +33,11 @@ func NodeGetServiceStateLabel(node *swarm.Node, srvName string) string {
 
 // NodeSetServiceStateLabel writes a value to the status label on given node for
 // given service.
-func NodeSetServiceStateLabel(ctx context.Context, node *swarm.Node, srvName string, state timetable.State) error {
+func NodeSetServiceStateLabel(ctx context.Context, node *swarm.Node, srvName string, state string) error {
 	if node.Spec.Labels == nil {
 		node.Spec.Labels = make(map[string]string)
 	}
-	node.Spec.Labels[labelState(srvName)] = string(state)
+	node.Spec.Labels[labelState(srvName)] = state
 
 	err := StdClient.NodeUpdate(ctx, node.ID, node.Version, node.Spec)
 	if err != nil {
