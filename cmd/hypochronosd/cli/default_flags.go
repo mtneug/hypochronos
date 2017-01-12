@@ -15,12 +15,9 @@
 package cli
 
 import (
-	"errors"
 	"time"
 
 	"github.com/mtneug/hypochronos/label"
-	"github.com/mtneug/hypochronos/model"
-	"github.com/mtneug/hypochronos/timetable"
 	flag "github.com/spf13/pflag"
 )
 
@@ -48,15 +45,13 @@ func readAndSetDefaults(flags *flag.FlagSet) error {
 	label.DefaultMinDuration = defaultMinimumSchedulingDuration
 
 	// --default-state
-	defaultStateStr, err := flags.GetString("default-state")
+	defaultState, err := flags.GetString("default-state")
 	if err != nil {
 		return err
 	}
-	defaultState := timetable.State(defaultStateStr)
-	if defaultState != model.StateActivated && defaultState != model.StateDeactivated {
-		return errors.New("cmd: unknown default state")
+	if defaultState != "" {
+		label.DefaultState = defaultState
 	}
-	label.DefaultState = defaultState
 
 	return nil
 }

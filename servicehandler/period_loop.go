@@ -43,14 +43,14 @@ func (sh *ServiceHandler) runPeriodLoop(ctx context.Context, stopChan <-chan str
 		}
 
 		// Filling Timetable
-		sh.timetableMutex.Lock()
+		sh.TimetableMutex.Lock()
 		log.Debug("Filling timetable")
 		err := timetable.Fill(&sh.Timetable)
 		if err != nil {
 			log.WithError(err).Error("Failed to fill timetable")
 			return
 		}
-		sh.timetableMutex.Unlock()
+		sh.TimetableMutex.Unlock()
 
 		// Start a new period
 		log.Debug("-------------------- Period started --------------------")
@@ -80,8 +80,8 @@ func (sh *ServiceHandler) runPeriodLoop(ctx context.Context, stopChan <-chan str
 			// Schedule state changes
 			log.Debug("Schedule state changes")
 			sh.NodesMap.Read(func(nodes map[string]swarm.Node) {
-				sh.timetableMutex.RLock()
-				defer sh.timetableMutex.RUnlock()
+				sh.TimetableMutex.RLock()
+				defer sh.TimetableMutex.RUnlock()
 
 				now := time.Now().UTC()
 

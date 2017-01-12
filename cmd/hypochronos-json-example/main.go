@@ -21,8 +21,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/mtneug/hypochronos/api"
 	"github.com/mtneug/hypochronos/docker"
-	"github.com/mtneug/hypochronos/model"
 	"github.com/mtneug/hypochronos/timetable"
 )
 
@@ -48,12 +48,12 @@ func ttHandler(w http.ResponseWriter, r *http.Request) {
 			API:      timetable.API{APIVersion: "1"},
 			Metadata: timetable.Metadata{CreatedAt: now},
 			Spec: timetable.JSONFillerSpec{
-				Timetable: map[string]map[time.Time]timetable.State{
+				Timetable: map[string]map[time.Time]string{
 					nodeID: {
-						now.Add(-15 * time.Second): model.StateActivated,
-						now.Add(+15 * time.Second): model.StateDeactivated,
-						now.Add(+45 * time.Second): model.StateActivated,
-						now.Add(+75 * time.Second): model.StateDeactivated,
+						now.Add(-15 * time.Second): api.StateValue_activated.String(),
+						now.Add(+15 * time.Second): api.StateValue_deactivated.String(),
+						now.Add(+45 * time.Second): api.StateValue_activated.String(),
+						now.Add(+75 * time.Second): api.StateValue_deactivated.String(),
 					},
 				},
 			},

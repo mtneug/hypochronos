@@ -24,7 +24,6 @@ import (
 	"github.com/mtneug/hypochronos/api"
 	"github.com/mtneug/hypochronos/docker"
 	"github.com/mtneug/hypochronos/event"
-	"github.com/mtneug/hypochronos/model"
 	"github.com/mtneug/hypochronos/store"
 	"github.com/mtneug/hypochronos/timetable"
 	"github.com/mtneug/pkg/startstopper"
@@ -43,7 +42,7 @@ type ServiceHandler struct {
 	MinDuration time.Duration
 
 	Timetable      timetable.Timetable
-	timetableMutex sync.RWMutex
+	TimetableMutex sync.RWMutex
 
 	EventManager event.Manager
 	eventLoop    startstopper.StartStopper
@@ -98,7 +97,7 @@ func (sh *ServiceHandler) run(ctx context.Context, stopChan <-chan struct{}) err
 			nodes[key] = node
 
 			s := api.State{
-				Value:   api.StateValue_Undefined,
+				Value:   api.StateValue_undefined.String(),
 				Until:   timetable.MaxTime.Unix(),
 				Node:    &api.Node{ID: node.ID},
 				Service: &api.Service{ID: sh.ServiceID, Name: sh.ServiceName},
@@ -124,8 +123,8 @@ func (sh *ServiceHandler) WithPeriod(ctx context.Context) (context.Context, cont
 
 // PeriodStart time of current period.
 func (sh *ServiceHandler) PeriodStart() time.Time {
-	sh.timetableMutex.RLock()
-	defer sh.timetableMutex.RUnlock()
+	sh.TimetableMutex.RLock()
+	defer sh.TimetableMutex.RUnlock()
 
 	return sh.Timetable.FilledAt
 }
@@ -164,20 +163,20 @@ func forEachKeyNodePair(ctx context.Context, nm map[string]swarm.Node,
 }
 
 func (sh *ServiceHandler) applyTimetable(ctx context.Context, node *swarm.Node) error {
-	sh.timetableMutex.RLock()
-	defer sh.timetableMutex.RUnlock()
+	sh.TimetableMutex.RLock()
+	defer sh.TimetableMutex.RUnlock()
 
 	state, until := sh.Timetable.State(node.ID, time.Now().UTC())
 	return sh.setState(ctx, node, state, until)
 }
 
-func (sh *ServiceHandler) setState(ctx context.Context, node *swarm.Node, state timetable.State,
+func (sh *ServiceHandler) setState(ctx context.Context, node *swarm.Node, state string,
 	until time.Time) error {
 	now := time.Now().UTC()
 
-	curState := timetable.State(docker.NodeGetServiceStateLabel(node, sh.ServiceName))
+	curState := docker.NodeGetServiceStateLabel(node, sh.ServiceName)
 	if curState == "" {
-		curState = timetable.StateUndefined
+		curState = api.StateValue_undefined.String()
 	}
 	log.Debugf("Current state: %s; New state: %s until %s", curState, state, until)
 
@@ -186,7 +185,8 @@ func (sh *ServiceHandler) setState(ctx context.Context, node *swarm.Node, state 
 		return nil
 	}
 
-	if state == model.StateActivated && until.Sub(now) < sh.MinDuration {
+	// TODO: does this belongs here or to the helper?
+	if state == api.StateValue_activated.String() && until.Sub(now) < sh.MinDuration {
 		log.Debug("Skipping activation: phase is to short")
 		return nil
 	}
@@ -199,22 +199,12 @@ func (sh *ServiceHandler) setState(ctx context.Context, node *swarm.Node, state 
 
 	// Sending out event
 	action := api.EventAction_updated
-	if curState == timetable.StateUndefined {
+	if curState == api.StateValue_undefined.String() {
 		action = api.EventAction_created
 	}
 
-	var value api.StateValue
-	switch state {
-	case timetable.StateUndefined:
-		value = api.StateValue_Undefined
-	case model.StateActivated:
-		value = api.StateValue_Activated
-	case model.StateDeactivated:
-		value = api.StateValue_Deactivated
-	}
-
 	s := api.State{
-		Value:   value,
+		Value:   state,
 		Until:   until.Unix(),
 		Node:    &api.Node{ID: node.ID},
 		Service: &api.Service{ID: sh.ServiceID, Name: sh.ServiceName},

@@ -17,13 +17,13 @@ package label
 import (
 	"net/url"
 
-	"github.com/mtneug/hypochronos/model"
+	"github.com/mtneug/hypochronos/api"
 	"github.com/mtneug/hypochronos/timetable"
 )
 
 var (
 	// DefaultState for timetable spec.
-	DefaultState = model.StateActivated
+	DefaultState = api.StateValue_activated.String()
 )
 
 // ParseTimetableSpec parses the labels and sets the corresponding values for
@@ -49,15 +49,9 @@ func ParseTimetableSpec(tts *timetable.Spec, labels map[string]string) error {
 
 func parseTimetableSpecCommon(tts *timetable.Spec, labels map[string]string) error {
 	// default state
-	defaultStateStr, ok := labels[TimetableDefaultState]
-	if !ok {
+	tts.DefaultState = labels[TimetableDefaultState]
+	if tts.DefaultState == "" {
 		tts.DefaultState = DefaultState
-	} else {
-		defaultState := timetable.State(defaultStateStr)
-		if defaultState != model.StateActivated && defaultState != model.StateDeactivated {
-			return ErrUnknownState
-		}
-		tts.DefaultState = defaultState
 	}
 
 	return nil

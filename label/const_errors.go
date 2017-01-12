@@ -35,8 +35,4 @@ var (
 	// ErrInvalidDuration indicates that the parsing failed because the duration
 	// is invalid.
 	ErrInvalidDuration = errors.New("label: invalid duration")
-
-	// ErrUnknownState indicates that the parsing failed because the state is
-	// unknown.
-	ErrUnknownState = errors.New("label: unknown state")
 )
