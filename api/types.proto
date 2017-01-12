@@ -40,16 +40,20 @@ message Service {
 }
 
 message State {
-  StateValue Value = 1;
+  string Value = 1;
   int64 Until = 2;
-  Service Service = 3;
-  Node Node = 4;
+  Node Node = 3;
+  Service Service = 4;
 }
 
+// StateValue lists known states to hypochronos.
 enum StateValue {
-  Undefined = 0;
-  Activated = 1;
-  Deactivated = 2;
+  // undefined indicates that the state of the resource is undefined.
+  undefined = 0;
+  // activated indicates that the resource is activated.
+  activated = 1;
+  // deactivated indicates that the resource is deactivated.
+  deactivated = 2;
 }
 
 message Event {
