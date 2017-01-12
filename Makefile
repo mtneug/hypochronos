@@ -92,7 +92,7 @@ clean:
 
 generate:
 	@echo "⌛ $@"
-	@go generate -v -x ${PKGS}
+	@go generate -x ${PKGS}
 
 lint:
 	@echo "⌛ $@"
