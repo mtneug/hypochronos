@@ -121,7 +121,7 @@ var rootCmd = &cobra.Command{
 		// Controller
 		em := event.NewConcurrentManager(20)
 		ctrl := controller.New(nodePeriod, srvPeriod, em)
-		srv := apiserver.New(addr, em)
+		srv := apiserver.New(addr, ctrl.ServiceHandlerMap, em)
 
 		group := startstopper.NewGroup([]startstopper.StartStopper{
 			em,

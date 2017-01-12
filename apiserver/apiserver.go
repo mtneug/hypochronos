@@ -30,15 +30,18 @@ import (
 type Server struct {
 	startstopper.StartStopper
 
-	Addr         string
-	EventManager event.Manager
+	Addr string
+
+	ServiceHandlerMap startstopper.Map
+	EventManager      event.Manager
 }
 
 // New creates a new hypochronos API server.
-func New(addr string, eventManager event.Manager) *Server {
+func New(addr string, serviceHandlerMap startstopper.Map, eventManager event.Manager) *Server {
 	s := &Server{
-		Addr:         addr,
-		EventManager: eventManager,
+		Addr:              addr,
+		ServiceHandlerMap: serviceHandlerMap,
+		EventManager:      eventManager,
 	}
 	s.StartStopper = startstopper.NewGo(startstopper.RunnerFunc(s.run))
 

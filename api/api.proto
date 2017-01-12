@@ -19,7 +19,17 @@ package api;
 import "types.proto";
 
 service Hypochronos {
+  rpc StatesAt (StatesAtRequest) returns (StatesAtResponse);
   rpc Events (EventsRequest) returns (stream EventsResponse);
+}
+
+message StatesAtRequest {
+  string NodeID = 1;
+  int64 Time = 2;
+}
+
+message StatesAtResponse {
+  repeated State States = 1;
 }
 
 message EventsRequest {
