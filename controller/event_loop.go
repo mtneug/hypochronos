@@ -69,6 +69,9 @@ func (c *Controller) handleServiceEvent(ctx context.Context, e api.Event) {
 }
 
 func (c *Controller) addServiceHandler(ctx context.Context, srv swarm.Service) (bool, error) {
+	c.ServiceHandlerMap.Lock()
+	defer c.ServiceHandlerMap.Unlock()
+
 	sh, err := c.constructServiceHandler(srv)
 	if err != nil {
 		return false, err
@@ -78,6 +81,9 @@ func (c *Controller) addServiceHandler(ctx context.Context, srv swarm.Service) (
 }
 
 func (c *Controller) updateServiceHandler(ctx context.Context, srv swarm.Service) (bool, error) {
+	c.ServiceHandlerMap.Lock()
+	defer c.ServiceHandlerMap.Unlock()
+
 	// We want to skip updates if non of the hypochronos labels have changed (for
 	// instance if the service scale is changed).
 	if label.Equal(srv.Spec.Labels, srv.PreviousSpec.Labels) {
@@ -93,6 +99,9 @@ func (c *Controller) updateServiceHandler(ctx context.Context, srv swarm.Service
 }
 
 func (c *Controller) deleteServiceHandler(ctx context.Context, serviceID string) (bool, error) {
+	c.ServiceHandlerMap.Lock()
+	defer c.ServiceHandlerMap.Unlock()
+
 	return c.ServiceHandlerMap.DeleteAndStop(ctx, serviceID)
 }
 
