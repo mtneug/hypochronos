@@ -352,8 +352,8 @@ func handleDockerEvent(ctx context.Context, e events.Message) {
 	args := filters.NewArgs()
 	args.Add("id", e.Actor.ID)
 	opts := types.ContainerListOptions{
-		All:    true,
-		Filter: args,
+		All:     true,
+		Filters: args,
 	}
 	c, err := docker.StdClient.ContainerList(ctx, opts)
 	if err != nil {

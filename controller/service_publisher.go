@@ -33,7 +33,7 @@ var serviceListOptions types.ServiceListOptions
 func init() {
 	f := filters.NewArgs()
 	f.Add("label", label.TimetableType)
-	serviceListOptions = types.ServiceListOptions{Filter: f}
+	serviceListOptions = types.ServiceListOptions{Filters: f}
 }
 
 func (c *Controller) runServiceEventsPublisher(ctx context.Context, stopChan <-chan struct{}) error {

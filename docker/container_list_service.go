@@ -26,5 +26,5 @@ func ContainerListService(ctx context.Context, serviceID string) ([]types.Contai
 	args := filters.NewArgs()
 	args.Add("label", DockerSwarmServiceIDLabel+"="+serviceID)
 
-	return StdClient.ContainerList(ctx, types.ContainerListOptions{Filter: args})
+	return StdClient.ContainerList(ctx, types.ContainerListOptions{Filters: args})
 }
