@@ -57,7 +57,7 @@ func readAndSetDefaults(flags *flag.FlagSet) error {
 }
 
 func init() {
-	rootCmd.Flags().String("default-period", "1m", "Default period")
+	rootCmd.Flags().String("default-period", "10m", "Default period")
 	rootCmd.Flags().String("default-state", "activated", "Default state of a node (activated or deactivated)")
 	rootCmd.Flags().String("default-minimum-scheduling-duration", "1m", "Default minimum sheduling duration")
 }
