@@ -87,7 +87,7 @@ func (sh *ServiceHandler) runPeriodLoop(ctx context.Context, stopChan <-chan str
 
 				errChan := forEachKeyNodePair(periodCtx, nodes, func(ctx context.Context, key string, node swarm.Node) error {
 					entries := sh.Timetable.Entries(key).Since(now).Until(periodEnd)
-					_, _until := sh.Timetable.State(key, periodEnd)
+					_, _until := sh.Timetable.StateAt(key, periodEnd)
 
 					for i := len(entries) - 1; i >= 0; i-- {
 						entry, until := entries[i], _until

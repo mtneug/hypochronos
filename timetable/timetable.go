@@ -125,8 +125,8 @@ func (tt *Timetable) Entries(id string) SortedEntries {
 	return e
 }
 
-// State of the resource at given time.
-func (tt *Timetable) State(id string, t time.Time) (state string, until time.Time) {
+// StateAt of the resource at given time.
+func (tt *Timetable) StateAt(id string, t time.Time) (state string, until time.Time) {
 	entries, ok := tt.idSortedEntriesMap[id]
 	if !ok {
 		return tt.Spec.DefaultState, MaxTime

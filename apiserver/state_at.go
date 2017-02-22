@@ -40,7 +40,7 @@ func (s *Server) StatesAt(ctx context.Context, req *api.StatesAtRequest) (*api.S
 		sh.TimetableMutex.RLock()
 		defer sh.TimetableMutex.RUnlock()
 
-		state, until := sh.Timetable.State(req.NodeID, t)
+		state, until := sh.Timetable.StateAt(req.NodeID, t)
 
 		s := api.State{
 			Value: state,

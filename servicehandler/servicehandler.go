@@ -166,7 +166,7 @@ func (sh *ServiceHandler) applyTimetable(ctx context.Context, node *swarm.Node) 
 	sh.TimetableMutex.RLock()
 	defer sh.TimetableMutex.RUnlock()
 
-	state, until := sh.Timetable.State(node.ID, time.Now().UTC())
+	state, until := sh.Timetable.StateAt(node.ID, time.Now().UTC())
 	return sh.setState(ctx, node, state, until)
 }
 
