@@ -19,6 +19,16 @@ import "time"
 // TTLFilePath to write the TTL file to.
 const TTLFilePath = "/etc/container-ttl"
 
+// API holds common values to all API objects.
+type API struct {
+	APIVersion string `json:"apiVersion"`
+}
+
+// Metadata of an API object.
+type Metadata struct {
+	CreatedAt time.Time `json:"createdAt"`
+}
+
 // TTLData API object used in TTLResponse.
 type TTLData struct {
 	TTL time.Time `json:"ttl"`
