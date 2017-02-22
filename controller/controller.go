@@ -35,10 +35,10 @@ type Controller struct {
 	ServicesMap       *store.ServicesMap
 	ServiceHandlerMap startstopper.Map
 
-	EventManager           event.Manager
-	eventLoop              startstopper.StartStopper
-	nodeEventsPublisher    startstopper.StartStopper
-	serviceEventsPublisher startstopper.StartStopper
+	EventManager          event.Manager
+	eventLoop             startstopper.StartStopper
+	nodeEventPublisher    startstopper.StartStopper
+	serviceEventPublisher startstopper.StartStopper
 }
 
 // New creates a new controller.
@@ -54,8 +54,8 @@ func New(nodeUpdatePeriod, serviceUpdatePeriod time.Duration, eventManager event
 
 	ctrl.StartStopper = startstopper.NewGo(startstopper.RunnerFunc(ctrl.run))
 	ctrl.eventLoop = startstopper.NewGo(startstopper.RunnerFunc(ctrl.runEventLoop))
-	ctrl.nodeEventsPublisher = startstopper.NewGo(startstopper.RunnerFunc(ctrl.runNodeEventsPublisher))
-	ctrl.serviceEventsPublisher = startstopper.NewGo(startstopper.RunnerFunc(ctrl.runServiceEventsPublisher))
+	ctrl.nodeEventPublisher = startstopper.NewGo(startstopper.RunnerFunc(ctrl.runNodeEventPublisher))
+	ctrl.serviceEventPublisher = startstopper.NewGo(startstopper.RunnerFunc(ctrl.runServiceEventPublisher))
 
 	return ctrl
 }
@@ -65,8 +65,8 @@ func (c *Controller) run(ctx context.Context, stopChan <-chan struct{}) error {
 	defer log.Debug("Controller stopped")
 
 	group := startstopper.NewGroup([]startstopper.StartStopper{
-		c.nodeEventsPublisher,
-		c.serviceEventsPublisher,
+		c.nodeEventPublisher,
+		c.serviceEventPublisher,
 		c.eventLoop,
 	})
 

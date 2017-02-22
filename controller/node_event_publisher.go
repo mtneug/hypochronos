@@ -26,7 +26,7 @@ import (
 	"github.com/mtneug/hypochronos/event"
 )
 
-func (c *Controller) runNodeEventsPublisher(ctx context.Context, stopChan <-chan struct{}) error {
+func (c *Controller) runNodeEventPublisher(ctx context.Context, stopChan <-chan struct{}) error {
 	log.Debug("Node event publisher started")
 	defer log.Debug("Node event publisher stopped")
 

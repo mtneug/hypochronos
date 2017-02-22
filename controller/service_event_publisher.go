@@ -36,7 +36,7 @@ func init() {
 	serviceListOptions = types.ServiceListOptions{Filters: f}
 }
 
-func (c *Controller) runServiceEventsPublisher(ctx context.Context, stopChan <-chan struct{}) error {
+func (c *Controller) runServiceEventPublisher(ctx context.Context, stopChan <-chan struct{}) error {
 	log.Debug("Service event publisher started")
 	defer log.Debug("Service event publisher stopped")
 
