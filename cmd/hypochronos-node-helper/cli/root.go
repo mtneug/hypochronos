@@ -57,8 +57,8 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:           "hypochronos",
-	Short:         "Temorary prevent Docker Swarm nodes from running a service",
+	Use:           "hypochronos-node-helper",
+	Short:         "Temorary prevent Docker Swarm nodes from running certain services",
 	SilenceErrors: true,
 	SilenceUsage:  true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
