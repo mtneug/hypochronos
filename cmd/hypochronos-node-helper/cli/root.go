@@ -397,8 +397,7 @@ func applyState(ctx context.Context, state api.State, cs []types.Container) {
 		return
 	}
 
-	switch state.Value {
-	case api.StateValue_activated.String():
+	if state.Value == api.StateValue_activated.String() {
 		log.Debug("Writing container TTL")
 
 		errChan := docker.ParallelForEachContainer(ctx, cs, func(ctx context.Context, c types.Container) error {
@@ -412,31 +411,6 @@ func applyState(ctx context.Context, state api.State, cs []types.Container) {
 
 		for err := range errChan {
 			log.WithError(err).Warn("Writing container TTL failed")
-		}
-
-	case api.StateValue_deactivated.String():
-		// NOTE: this should normally be done by Docker Swarm
-		log.Debug("Stopping and removing running containers")
-
-		// Get stop grace period
-		var timeout *time.Duration
-		srv, _, err := docker.StdClient.ServiceInspectWithRaw(ctx, state.Service.ID)
-		if err != nil {
-			log.WithError(err).Warn("Failed to get stop grace period of service")
-		} else {
-			timeout = srv.Spec.TaskTemplate.ContainerSpec.StopGracePeriod
-		}
-
-		errChan := docker.ParallelForEachContainer(ctx, cs, func(ctx context.Context, c types.Container) error {
-			err2 := docker.ContainerStopAndRemoveGracefully(ctx, c.ID, timeout)
-			if err2 != nil {
-				return err2
-			}
-			return nil
-		})
-
-		for err := range errChan {
-			log.WithError(err).Warn("Stopping and removing running containers failed")
 		}
 	}
 }
