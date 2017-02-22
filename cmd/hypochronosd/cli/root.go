@@ -35,7 +35,7 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:           "hypochronosd",
-	Short:         "Temorary prevent Docker Swarm nodes from running certain service",
+	Short:         "Timetable Constrained Scheduling for Docker Swarm",
 	SilenceErrors: true,
 	SilenceUsage:  true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
