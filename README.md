@@ -6,11 +6,11 @@
 [![Docker Image Version](https://images.microbadger.com/badges/version/mtneug/hypochronosd.svg)](https://hub.docker.com/r/mtneug/hypochronosd/)
 [![Docker Image Layers](https://images.microbadger.com/badges/image/mtneug/hypochronosd.svg)](https://microbadger.com/images/mtneug/hypochronosd)
 
-> **ὑπόχρονος** `/hy.pó.kʰró.nos/`  
+> **ὑπόχρονος** `/hy.pó.kʰró.nos/`<br>
 >
 > temporary (?), IG22.2776.156 (ii A.D.).
 >
-> — Liddell, Scott, Jones Ancient Greek Lexicon (LSJ)
+> — [Liddell, Scott, Jones Ancient Greek Lexicon (LSJ)](https://lsj.translatum.gr/w/index.php?title=ὑπόχρονος)
 
 Based on a timetable `hypochronos` allows you to dynamically prevent certain nodes of a [Docker Swarm](https://docs.docker.com/engine/swarm/) cluster from running specified services. For this the label set of nodes are updated and a placement constraint is added to the services.
 
