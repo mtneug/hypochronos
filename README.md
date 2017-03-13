@@ -1,6 +1,10 @@
 # :hourglass: `hypochronos`
 
 [![GoDoc](https://godoc.org/github.com/mtneug/hypochronos?status.png)](https://godoc.org/github.com/mtneug/hypochronos)
+[![Build Status](https://travis-ci.org/mtneug/hypochronos.svg?branch=master)](https://travis-ci.org/mtneug/hypochronos)
+[![codecov](https://codecov.io/gh/mtneug/hypochronos/branch/master/graph/badge.svg)](https://codecov.io/gh/mtneug/hypochronos)
+[![Docker Image Version](https://images.microbadger.com/badges/version/mtneug/hypochronosd.svg)](https://hub.docker.com/r/mtneug/hypochronosd/)
+[![Docker Image Layers](https://images.microbadger.com/badges/image/mtneug/hypochronosd.svg)](https://microbadger.com/images/mtneug/hypochronosd)
 
 > **ὑπόχρονος** `/hy.pó.kʰró.nos/`  
 >
