@@ -158,7 +158,7 @@ ci-docker-image-release:
 	@echo "Update README"
 	@../hypochronos-docker/update-readme.sh
 
-	@cd ../hypochronos-docker && git add README.md
+	@cd ../hypochronos-docker && git add -A
 	@cd ../hypochronos-docker && git commit -m "Update README.md"
 
 	# Push
