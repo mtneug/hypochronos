@@ -38,3 +38,34 @@ script:
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
+
+before_deploy:
+  - git config --global user.name "Release bot"
+  - git config --global user.email "Release bot"
+
+  - openssl aes-256-cbc -K $encrypted_9877c7185903_key -iv $encrypted_9877c7185903_iv -in .travis/id_rsa.enc -out ~/.ssh/id_rsa -d
+  - chmod 600 ~/.ssh/id_rsa
+  - eval $(ssh-agent)
+  - ssh-add ~/.ssh/id_rsa
+
+deploy:
+  - provider: releases
+    skip_cleanup: true
+    api_key:
+      secure: Y8RTHE/IOe9/+qawBGqZU0nCAIhL8siOPSg90Jwmv9Dz3YVVDXC4NCJnO7Vuim6S92i5q03dWSeJovJBTAaTyt0WXiT5kL2s+BBsNu6xfZgilGHQTH3kHBtBl343PJSa/J9hdWalPgVFRIsl6MTRC6ahmlT1O+Jfb8PIDlj96abee8wp+oCajhBtCwLgzW6z89+vL5LfCu4tNbljsvPErzrEB1FbDKfdkhdN7qBBk02oAO64yddYUwD0kTBgidOu42sVUAKI4yuI+sqK/17/SYwLZYmXv0bnkIa/yw1YSm6Kl80Fdu/SArufntKV4s2F/PiFejUAL83iGcsR5jA1ojePMC+tskQoDYiIWuI3Xkv5espKUnoO5+6Puvx1lq74UxcfFZ6QJzfDoyDtSJ+qTRrGuV4RydjypSFh3Fe+Zvv1QkcXHpjRxL9hbmk7Xp7Vs6l/EXODLnwL/UIWVlAeXpq3HtrtthaanZlUBEbWRE01edQTYZJLLraf+Zkt7vU1CDYZ5I9/SvkG72u1SVEc+1Dkru8hTmu3q1Tbrks9N7BJGjLNbgdQ9DPbUsBPARiXV7foLfkBKHCev1MdQXSLhztj1lzXwIN14a+1PuQvmadQ5FlBySTFJOUbOGxj70IJIqUAA5ZDRHlkjH/xfvDSpJfsjDnZeARbuImp6l0ewU8=
+    file:
+      - bin/static/hypochronosd
+      - bin/static/hypochronos-node-helper
+      - bin/static/hypochronos-json-example
+    overwrite: true
+    on:
+      repo: mtneug/hypochronos
+      tags: true
+      go: 1.8
+  - provider: script
+    skip_cleanup: true
+    script: make ci-docker-image-release
+    on:
+      repo: mtneug/hypochronos
+      tags: true
+      go: 1.8

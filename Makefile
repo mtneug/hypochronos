@@ -24,7 +24,7 @@ PKG_INTEGRATION=${PKG}/integration
 PKGS=$(shell go list ./... | grep -v /vendor/)
 
 GO_LDFLAGS=-ldflags " \
-	-s \
+	-s -w \
 	-X '$(PKG)/version.gitCommit=$(GIT_COMMIT)' \
 	-X '$(PKG)/version.gitTreeState=$(GIT_TREE_STATE)' \
 	-X '$(PKG)/version.buildDate=$(BUILD_DATE)'"
@@ -50,24 +50,31 @@ GOMETALINTER_COMMON_ARGS=\
 	--line-length=120
 
 all: lint build test integration
-ci: lint-full build coverage coverage-integration
+ci: lint-full build-static coverage coverage-integration
 
 build: $(BIN)
-	@echo "⌛ $@"
+	@echo "⌛  $@"
+
+build-static: $(addprefix bin/static/, $(CMD))
+	@echo "⌛  $@"
 
 bin/%: cmd/% FORCE
-	@echo "⌛ $@"
+	@echo "⌛  $@"
 	@go build $(GO_BUILD_ARGS) -o $@ ./$<
 
+bin/static/%: cmd/% FORCE
+	@echo "⌛  $@"
+	@CGO_ENABLED=0 go build $(GO_BUILD_ARGS) -a -tags netgo -installsuffix netgo -o $@ ./$<
+
 install: $(addprefix install-, $(CMD))
-		@echo "⌛ $@"
+		@echo "⌛  $@"
 
 install-%: cmd/% FORCE
-	@echo "⌛ $@"
+	@echo "⌛  $@"
 	@go install $(GO_BUILD_ARGS) ./$<
 
 run: bin/hypochronosd
-	@echo "⌛ $@"
+	@echo "⌛  $@"
 	@bin/hypochronosd \
 		--log-level debug \
 		--service-update-period 1s \
@@ -77,29 +84,29 @@ run: bin/hypochronosd
 		--default-minimum-scheduling-duration 10s
 
 run-helper: bin/hypochronos-node-helper
-	@echo "⌛ $@"
+	@echo "⌛  $@"
 	@bin/hypochronos-node-helper \
 		--log-level debug \
 		--host localhost:8080
 
 run-example: bin/hypochronos-json-example
-	@echo "⌛ $@"
+	@echo "⌛  $@"
 	@bin/hypochronos-json-example
 
 clean:
-	@echo "⌛ $@"
+	@echo "⌛  $@"
 	@rm -f bin
 
 generate:
-	@echo "⌛ $@"
+	@echo "⌛  $@"
 	@go generate -x ${PKGS}
 
 lint:
-	@echo "⌛ $@"
+	@echo "⌛  $@"
 	@test -z "$$(gometalinter --deadline=10s ${GOMETALINTER_COMMON_ARGS} ./... | grep -v '.pb.go:' | tee /dev/stderr)"
 
 lint-full:
-	@echo "⌛ $@"
+	@echo "⌛  $@"
 	@test -z "$$(gometalinter --deadline=5m ${GOMETALINTER_COMMON_ARGS} \
 			--enable=deadcode \
 			--enable=varcheck \
@@ -111,15 +118,15 @@ lint-full:
 		| tee /dev/stderr)"
 
 test:
-	@echo "⌛ $@"
+	@echo "⌛  $@"
 	@go test -parallel 8 -race $(filter-out ${PKG_INTEGRATION},${PKGS})
 
 integration:
-	@echo "⌛ $@"
+	@echo "⌛  $@"
 	@go test -parallel 8 -race ${PKG_INTEGRATION}
 
 coverage:
-	@echo "⌛ $@"
+	@echo "⌛  $@"
 	@status=0; \
 	for pkg in $(filter-out ${PKG_INTEGRATION},${PKGS}); do \
 		go test -race -coverprofile="../../../$$pkg/coverage.txt" -covermode=atomic $$pkg; \
@@ -128,9 +135,34 @@ coverage:
 	exit $$status
 
 coverage-integration:
-	@echo "⌛ $@"
+	@echo "⌛  $@"
 	@go test -race -coverprofile="../../../${PKG_INTEGRATION}/coverage.txt" -covermode=atomic ${PKG_INTEGRATION}
+
+ci-docker-image-release:
+	@echo "⌛  $@"
+	@git clone --depth 1 git@github.com:mtneug/hypochronos-docker.git ../hypochronos-docker
+
+	@# Commit binary
+	@echo "Commit binary"
+	@cp bin/static/hypochronosd ../hypochronos-docker/hypochronosd/hypochronosd
+	@cp bin/static/hypochronos-node-helper ../hypochronos-docker/hypochronos-node-helper/hypochronos-node-helper
+	@../hypochronos-docker/update-image.sh "${TRAVIS_TAG}" "${TRAVIS_COMMIT}"
+
+	@cd ../hypochronos-docker && git add -A
+	@cd ../hypochronos-docker && git commit -m "Release ${TRAVIS_TAG} - ${TRAVIS_COMMIT}"
+	@cd ../hypochronos-docker && git tag -f "${TRAVIS_TAG}"
+
+	@# Update README.md
+	@echo "Update README"
+	@../hypochronos-docker/update-readme.sh
+
+	@cd ../hypochronos-docker && git add README.md
+	@cd ../hypochronos-docker && git commit -m "Update README.md"
+
+	# Push
+	@cd ../hypochronos-docker && git push -f --tags
+	@cd ../hypochronos-docker && git push -f
 
 FORCE:
 
-.PHONY: all ci build clean generate lint lint-full test integration coverage coverage-integration FORCE
+.PHONY: all ci build build-static clean generate lint lint-full test integration coverage coverage-integration ci-docker-image-release FORCE
