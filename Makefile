@@ -144,8 +144,10 @@ ci-docker-image-release:
 
 	@# Commit binary
 	@echo "Commit binary"
+	@# TODO: add loop
 	@cp bin/static/hypochronosd ../hypochronos-docker/hypochronosd/hypochronosd
 	@cp bin/static/hypochronos-node-helper ../hypochronos-docker/hypochronos-node-helper/hypochronos-node-helper
+	@cp bin/static/hypochronos-json-example ../hypochronos-docker/hypochronos-json-example/hypochronos-json-example
 	@../hypochronos-docker/update-image.sh "${TRAVIS_TAG}" "${TRAVIS_COMMIT}"
 
 	@cd ../hypochronos-docker && git add -A
