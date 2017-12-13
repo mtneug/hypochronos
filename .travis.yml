@@ -17,7 +17,7 @@ dist: trusty
 sudo: required
 
 go:
-  - 1.8
+  - 1.9
   - tip
 
 services:
@@ -39,15 +39,6 @@ script:
 after_success:
   - bash <(curl -s https://codecov.io/bash)
 
-before_deploy:
-  - git config --global user.name "Release bot"
-  - git config --global user.email "Release bot"
-
-  - openssl aes-256-cbc -K $encrypted_9877c7185903_key -iv $encrypted_9877c7185903_iv -in .travis/id_rsa.enc -out ~/.ssh/id_rsa -d
-  - chmod 600 ~/.ssh/id_rsa
-  - eval $(ssh-agent)
-  - ssh-add ~/.ssh/id_rsa
-
 deploy:
   - provider: releases
     skip_cleanup: true
@@ -61,11 +52,4 @@ deploy:
     on:
       repo: mtneug/hypochronos
       tags: true
-      go: 1.8
-  - provider: script
-    skip_cleanup: true
-    script: make ci-docker-image-release
-    on:
-      repo: mtneug/hypochronos
-      tags: true
-      go: 1.8
+      go: 1.9

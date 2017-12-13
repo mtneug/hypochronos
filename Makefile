@@ -138,33 +138,6 @@ coverage-integration:
 	@echo "⌛  $@"
 	@go test -race -coverprofile="../../../${PKG_INTEGRATION}/coverage.txt" -covermode=atomic ${PKG_INTEGRATION}
 
-ci-docker-image-release:
-	@echo "⌛  $@"
-	@git clone --depth 1 git@github.com:mtneug/hypochronos-docker.git ../hypochronos-docker
-
-	@# Commit binary
-	@echo "Commit binary"
-	@# TODO: add loop
-	@cp bin/static/hypochronosd ../hypochronos-docker/hypochronosd/hypochronosd
-	@cp bin/static/hypochronos-node-helper ../hypochronos-docker/hypochronos-node-helper/hypochronos-node-helper
-	@cp bin/static/hypochronos-json-example ../hypochronos-docker/hypochronos-json-example/hypochronos-json-example
-	@../hypochronos-docker/update-image.sh "${TRAVIS_TAG}" "${TRAVIS_COMMIT}"
-
-	@cd ../hypochronos-docker && git add -A
-	@cd ../hypochronos-docker && git commit -m "Release ${TRAVIS_TAG} - ${TRAVIS_COMMIT}"
-	@cd ../hypochronos-docker && git tag -f "${TRAVIS_TAG}"
-
-	@# Update README.md
-	@echo "Update README"
-	@../hypochronos-docker/update-readme.sh
-
-	@cd ../hypochronos-docker && git add -A
-	@cd ../hypochronos-docker && git commit -m "Update README.md"
-
-	# Push
-	@cd ../hypochronos-docker && git push -f --tags
-	@cd ../hypochronos-docker && git push -f
-
 FORCE:
 
-.PHONY: all ci build build-static clean generate lint lint-full test integration coverage coverage-integration ci-docker-image-release FORCE
+.PHONY: all ci build build-static clean generate lint lint-full test integration coverage coverage-integration FORCE
