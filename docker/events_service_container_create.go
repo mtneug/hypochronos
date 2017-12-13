@@ -17,9 +17,9 @@ package docker
 import (
 	"context"
 
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/events"
-	"github.com/docker/docker/api/types/filters"
+	"docker.io/go-docker/api/types"
+	"docker.io/go-docker/api/types/events"
+	"docker.io/go-docker/api/types/filters"
 )
 
 // EventsContainerCreate creates a Docker events and error channel that is

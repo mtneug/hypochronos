@@ -18,10 +18,10 @@ import (
 	"context"
 	"time"
 
+	"docker.io/go-docker/api/types"
+	"docker.io/go-docker/api/types/filters"
+	"docker.io/go-docker/api/types/swarm"
 	log "github.com/Sirupsen/logrus"
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/api/types/swarm"
 	"github.com/mtneug/hypochronos/api"
 	"github.com/mtneug/hypochronos/docker"
 	"github.com/mtneug/hypochronos/event"

@@ -18,7 +18,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/docker/docker/api/types/swarm"
+	"docker.io/go-docker/api/types/swarm"
 )
 
 func labelState(srvName string) string {

@@ -17,8 +17,8 @@ package controller
 import (
 	"context"
 
+	"docker.io/go-docker/api/types/swarm"
 	log "github.com/Sirupsen/logrus"
-	"github.com/docker/docker/api/types/swarm"
 	"github.com/mtneug/hypochronos/api"
 	"github.com/mtneug/hypochronos/label"
 	"github.com/mtneug/hypochronos/servicehandler"

@@ -21,7 +21,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/docker/docker/api/types"
+	"docker.io/go-docker/api/types"
 	"github.com/mtneug/hypochronos/model"
 )
 

@@ -17,8 +17,8 @@ package docker
 import (
 	"context"
 
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/filters"
+	"docker.io/go-docker/api/types"
+	"docker.io/go-docker/api/types/filters"
 )
 
 // ContainerListService lists all container of a specific service.

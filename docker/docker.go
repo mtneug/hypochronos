@@ -20,12 +20,12 @@ import (
 	"strconv"
 	"text/template"
 
-	"github.com/docker/docker/client"
+	"docker.io/go-docker"
 )
 
 var (
 	// StdClient is the default Docker client instance.
-	StdClient *client.Client
+	StdClient *docker.Client
 
 	// Err is the error that was returned when creating the Docker client.
 	Err error
@@ -42,7 +42,7 @@ var (
 )
 
 func init() {
-	StdClient, Err = client.NewEnvClient()
+	StdClient, Err = docker.NewEnvClient()
 }
 
 // PrintInfo writes informations about Docker relevant to hypochronos to the

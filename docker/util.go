@@ -18,7 +18,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/docker/docker/api/types"
+	"docker.io/go-docker/api/types"
 )
 
 // ParallelForEachContainer executes op parallel for each given container.

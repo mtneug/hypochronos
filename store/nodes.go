@@ -17,7 +17,7 @@ package store
 import (
 	"sync"
 
-	"github.com/docker/docker/api/types/swarm"
+	"docker.io/go-docker/api/types/swarm"
 )
 
 // NodesMap is a locked string to node map.

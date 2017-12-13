@@ -25,10 +25,10 @@ import (
 
 	"google.golang.org/grpc"
 
+	"docker.io/go-docker/api/types"
+	"docker.io/go-docker/api/types/events"
+	"docker.io/go-docker/api/types/filters"
 	log "github.com/Sirupsen/logrus"
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/events"
-	"github.com/docker/docker/api/types/filters"
 	"github.com/mtneug/hypochronos/api"
 	"github.com/mtneug/hypochronos/docker"
 	"github.com/mtneug/hypochronos/version"
