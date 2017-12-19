@@ -66,6 +66,13 @@ bin/static/%: cmd/% FORCE
 	@echo "⌛  $@"
 	@CGO_ENABLED=0 go build $(GO_BUILD_ARGS) -a -tags netgo -installsuffix netgo -o $@ ./$<
 
+build-image: $(addprefix build-image-, $(CMD))
+	@echo "⌛  $@"
+
+build-image-%:
+	@echo "⌛  $@"
+	@docker build -t mtneug/$* -f Dockerfile.$* .
+
 install: $(addprefix install-, $(CMD))
 		@echo "⌛  $@"
 
